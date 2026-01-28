@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1067516417535",
+    "project_id": "flutter-bloc-demo-app-2026",
+    "storage_bucket": "flutter-bloc-demo-app-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1067516417535:android:1db2e3791146e20fac43ca",
+        "android_client_info": {
+          "package_name": "com.example.flutter_bloc.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDonER3iWQU83LU_X9lkm8oeKLrIgn1htI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

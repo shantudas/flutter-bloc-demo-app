@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import '../constants/api_endpoints.dart';
+import '../../config/app_config.dart';
 import '../constants/app_constants.dart';
 import '../storage/secure_storage_service.dart';
 import '../network/network_info.dart';
@@ -9,12 +9,13 @@ class ApiClient {
   late final Dio _dio;
 
   ApiClient({
+    required AppConfig config,
     required SecureStorageService secureStorage,
     required NetworkInfo networkInfo,
   }) {
     _dio = Dio(
       BaseOptions(
-        baseUrl: ApiEndpoints.baseUrl,
+        baseUrl: config.apiBaseUrl,
         connectTimeout: AppConstants.connectTimeout,
         receiveTimeout: AppConstants.receiveTimeout,
         headers: {
@@ -26,7 +27,7 @@ class ApiClient {
 
     // Add interceptors
     _dio.interceptors.addAll([
-      AuthInterceptor(secureStorage, _dio),
+      AuthInterceptor(secureStorage, _dio, config.apiBaseUrl),
       LoggingInterceptor(),
       RetryInterceptor(dio: _dio, networkInfo: networkInfo),
     ]);

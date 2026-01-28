@@ -2,15 +2,16 @@ import 'dart:math';
 import 'package:dio/dio.dart';
 import '../storage/secure_storage_service.dart';
 import '../network/network_info.dart';
-import '../utils/logger.dart';
+import '../utils/app_logger.dart';
 import '../constants/api_endpoints.dart';
 import '../constants/app_constants.dart';
 
 class AuthInterceptor extends Interceptor {
   final SecureStorageService _secureStorage;
   final Dio _dio;
+  final String _baseUrl;
 
-  AuthInterceptor(this._secureStorage, this._dio);
+  AuthInterceptor(this._secureStorage, this._dio, this._baseUrl);
 
   @override
   void onRequest(
@@ -33,7 +34,7 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    Logger.d('AuthInterceptor Error: ${err.message}, status code: ${err.response?.statusCode}');
+    AppLogger.debug('AuthInterceptor Error: ${err.message}, status code: ${err.response?.statusCode}');
 
     if (err.response?.statusCode == 401) {
       // Token expired, try to refresh
@@ -61,7 +62,7 @@ class AuthInterceptor extends Interceptor {
       if (refreshToken == null) return false;
 
       final response = await Dio().post(
-        '${ApiEndpoints.baseUrl}${ApiEndpoints.refresh}',
+        '$_baseUrl${ApiEndpoints.refresh}',
         data: {'refreshToken': refreshToken},
       );
 
@@ -72,7 +73,7 @@ class AuthInterceptor extends Interceptor {
 
       return true;
     } catch (e) {
-      Logger.e('Failed to refresh token', error: e);
+      AppLogger.error('Failed to refresh token', error: e);
       return false;
     }
   }
@@ -81,23 +82,23 @@ class AuthInterceptor extends Interceptor {
 class LoggingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    Logger.d('REQUEST[${options.method}] => PATH: ${options.path}');
-    Logger.d('Headers: ${options.headers}');
+    AppLogger.debug('REQUEST[${options.method}] => PATH: ${options.path}');
+    AppLogger.debug('Headers: ${options.headers}');
     if (options.data != null) {
-      Logger.d('Data: ${options.data}');
+      AppLogger.debug('Data: ${options.data}');
     }
     handler.next(options);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    Logger.d('RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}');
+    AppLogger.debug('RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}');
     handler.next(response);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    Logger.e(
+    AppLogger.error(
       'ERROR[${err.response?.statusCode}] => PATH: ${err.requestOptions.path}',
       error: err.message,
     );

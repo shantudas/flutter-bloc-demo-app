@@ -7,16 +7,18 @@ import 'core/di/injection_container.dart';
 import 'core/services/firebase_service.dart';
 import 'core/utils/app_logger.dart';
 
-/// Default entry point - redirects to development
+/// Development entry point
 ///
-/// For production builds, use:
-/// flutter run -t lib/main_prod.dart
-/// flutter build apk -t lib/main_prod.dart --flavor prod
+/// Run this file for development builds:
+/// flutter run -t lib/main_dev.dart
+///
+/// Or for build:
+/// flutter build apk -t lib/main_dev.dart --flavor dev
 void main() async {
   // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Set the environment to development (default)
+  // Set the environment to development
   EnvironmentConfig.setEnvironment(Environment.development);
 
   // Load development configuration
@@ -30,7 +32,7 @@ void main() async {
   );
 
   // Log app startup
-  AppLogger.info('🚀 Starting app in DEVELOPMENT mode (default)');
+  AppLogger.info('🚀 Starting app in DEVELOPMENT mode');
   AppLogger.debug('Configuration: $config');
 
   // Initialize Firebase and Crashlytics

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
+import '../../config/app_config.dart';
 import '../network/network_info.dart';
 import '../storage/secure_storage_service.dart';
 import '../storage/settings_storage_service.dart';
@@ -32,7 +33,9 @@ import '../../features/splash/presentation/bloc/splash_bloc.dart';
 
 final sl = GetIt.instance;
 
-Future<void> initDependencies() async {
+Future<void> initDependencies(AppConfig config) async {
+  // Register the app configuration
+  sl.registerLazySingleton(() => config);
   // Core
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => sharedPreferences);
@@ -70,6 +73,7 @@ Future<void> initDependencies() async {
   // API Client
   sl.registerLazySingleton(
     () => ApiClient(
+      config: sl(),
       secureStorage: sl(),
       networkInfo: sl(),
     ),

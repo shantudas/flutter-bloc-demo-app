@@ -1,6 +1,4 @@
 class ApiEndpoints {
-  static const String baseUrl = 'https://dummyjson.com';
-
   // Auth endpoints
   static const String login = '/auth/login';
   static const String refresh = '/auth/refresh';

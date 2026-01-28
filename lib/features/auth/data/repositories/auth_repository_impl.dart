@@ -9,7 +9,7 @@ import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_data_source.dart';
 import '../datasources/auth_remote_data_source.dart';
-import '../../../../core/utils/logger.dart';
+import '../../../../core/utils/app_logger.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
@@ -39,7 +39,7 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
       );
 
-      Logger.d('AuthResponse: $authResponse');
+      AppLogger.debug('AuthResponse: $authResponse');
 
 
       // Save tokens

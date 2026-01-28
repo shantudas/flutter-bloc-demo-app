@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../debug/crashlytics_test_screen.dart';
 import '../bloc/posts_bloc.dart';
 import '../bloc/posts_event.dart';
 import '../bloc/posts_state.dart';
@@ -135,6 +136,18 @@ class _PostsScreenState extends State<PostsScreen> {
               return const SizedBox();
             },
           ),
+          TextButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CrashlyticsTestScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.bug_report),
+            label: const Text('Test Crashlytics'),
+          )
         ],
       ),
       body: BlocConsumer<AuthBloc, AuthState>(

@@ -87,6 +87,8 @@ This application showcases modern Flutter development practices including:
 | **Navigation** | go_router 14.2+ | Declarative routing |
 | **Functional Programming** | dartz 0.10+ | Either, Option types |
 | **Network Status** | connectivity_plus 6.0+ | Network connectivity detection |
+| **Firebase** | firebase_core 3.9+ | Firebase core functionality |
+| **Crash Reporting** | firebase_crashlytics 4.2+ | Real-time crash reporting |
 | **Code Generation** | build_runner, json_serializable, freezed | Code generation tools |
 | **Testing** | mockito, bloc_test, flutter_test | Testing utilities |
 
@@ -363,6 +365,68 @@ Contributions are welcome! Please follow these guidelines:
 
 ---
 
+## 🏭 Production-Grade Features
+
+This app includes enterprise-level features for production deployment:
+
+### Environment Configuration
+- ✅ **Dual Environments**: Separate development and production configurations
+- ✅ **Entry Points**: Multiple entry points (`main.dart`, `main_dev.dart`, `main_prod.dart`)
+- ✅ **Feature Flags**: Controlled feature rollout system
+- ✅ **Type-Safe Config**: Strongly-typed configuration model
+- ✅ **API Switching**: Automatic API endpoint switching based on environment
+
+### Logging & Monitoring
+- ✅ **Multi-Level Logging**: DEBUG, INFO, WARNING, ERROR, FATAL
+- ✅ **Environment-Aware**: Different log levels for dev/prod
+- ✅ **Context Tracking**: Automatic timestamp and context injection
+- ✅ **Network Logging**: Request/response logging for debugging
+- ✅ **User Action Logging**: Track user behavior and journey
+
+### Firebase Crashlytics Integration
+- ✅ **Automatic Crash Reporting**: Catches all uncaught errors
+- ✅ **Custom Keys & Breadcrumbs**: Rich context for debugging
+- ✅ **User Identification**: Associate crashes with specific users
+- ✅ **Non-Fatal Exceptions**: Track handled exceptions
+- ✅ **Environment Separation**: Separate Firebase projects for dev/prod
+- ✅ **Build Flavors**: Android flavors for dev and prod builds
+- ✅ **Test Screen**: Comprehensive testing interface for verification
+
+### Build & Deployment
+- ✅ **Product Flavors**: Android dev/prod flavors with different bundle IDs
+- ✅ **Firebase Integration**: Automated Firebase configuration per flavor
+- ✅ **Error Handling**: Production-grade error handling with `runZonedGuarded`
+
+### Running Different Environments
+
+**Development:**
+```bash
+# Run dev environment
+flutter run -t lib/main_dev.dart --flavor dev
+
+# Build dev APK
+flutter build apk -t lib/main_dev.dart --flavor dev
+```
+
+**Production:**
+```bash
+# Run prod environment
+flutter run -t lib/main_prod.dart --flavor prod
+
+# Build prod release
+flutter build apk -t lib/main_prod.dart --flavor prod --release
+flutter build appbundle -t lib/main_prod.dart --flavor prod --release
+```
+
+### Quick Reference Guides
+
+- **[ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md)** - Complete setup strategy and architecture
+- **[ENVIRONMENT_IMPLEMENTATION.md](ENVIRONMENT_IMPLEMENTATION.md)** - Implementation details and usage
+- **[CRASHLYTICS_GUIDE.md](CRASHLYTICS_GUIDE.md)** - Quick reference for Crashlytics operations
+- **[TEST_IMPLEMENTATION.md](TEST_IMPLEMENTATION.md)** - Testing strategy and examples
+
+---
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
@@ -378,9 +442,9 @@ For issues and questions:
 
 ---
 
-**Version:** 1.0.0  
-**Last Updated:** January 27, 2026  
-**Status:** ✅ Production Ready
+**Version:** 2.0.0  
+**Last Updated:** January 29, 2026  
+**Status:** ✅ Production Ready with Firebase Crashlytics
 
 ---
 
