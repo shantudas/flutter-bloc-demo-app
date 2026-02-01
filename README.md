@@ -167,14 +167,14 @@ make prod-build-ios
 ```
 ---
 ## 📚 Documentation
-For detailed documentation, see:
-- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Complete implementation guide:
+For detailed documentation, see the [docs](docs/) folder:
+- **[IMPLEMENTATION.md](docs/IMPLEMENTATION.md)** - Complete implementation guide:
   - Environment Configuration
   - Logging System
   - Firebase Crashlytics Integration
   - Project Structure
   - Secrets Management
-- **[TEST_IMPLEMENTATION.md](TEST_IMPLEMENTATION.md)** - Testing guide:
+- **[TEST_IMPLEMENTATION.md](docs/TEST_IMPLEMENTATION.md)** - Testing guide:
   - Unit testing
   - BLoC testing
   - Repository testing
