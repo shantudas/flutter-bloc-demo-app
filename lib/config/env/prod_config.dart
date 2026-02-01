@@ -9,59 +9,137 @@ import '../environment.dart';
 /// - Controlled feature rollout via feature flags
 /// - Debug mode disabled
 /// - Production logging (INFO/WARNING/ERROR only)
+///
+/// SECURITY: All sensitive values MUST come from --dart-define flags
+/// NO defaults for production secrets - will throw error if missing
 class ProdConfig {
-  static AppConfig get config => const AppConfig(
-        environment: Environment.production,
+  static AppConfig get config {
+    // Production API endpoint - REQUIRED, no default
+    final apiBaseUrl = const String.fromEnvironment(
+      'API_BASE_URL',
+      defaultValue: '',
+    );
 
-        // Production API endpoint
-        // TODO: Replace with your actual production API URL
-        apiBaseUrl: 'https://api.yourapp.com',
+    // Firebase Production Configuration - REQUIRED
+    final firebaseApiKey = const String.fromEnvironment(
+      'FIREBASE_API_KEY',
+      defaultValue: '',
+    );
+    final firebaseAppId = const String.fromEnvironment(
+      'FIREBASE_APP_ID',
+      defaultValue: '',
+    );
+    final firebaseMessagingSenderId = const String.fromEnvironment(
+      'FIREBASE_MESSAGING_SENDER_ID',
+      defaultValue: '',
+    );
+    final firebaseProjectId = const String.fromEnvironment(
+      'FIREBASE_PROJECT_ID',
+      defaultValue: '',
+    );
 
-        // Firebase Production Project Configuration
-        // TODO: Replace with your actual Firebase production project credentials
-        firebaseApiKey: 'YOUR_PROD_FIREBASE_API_KEY',
-        firebaseAppId: 'YOUR_PROD_FIREBASE_APP_ID',
-        firebaseMessagingSenderId: 'YOUR_PROD_MESSAGING_SENDER_ID',
-        firebaseProjectId: 'your-app-prod',
+    // Encryption key - REQUIRED
+    final encryptionKey = const String.fromEnvironment(
+      'ENCRYPTION_KEY',
+      defaultValue: '',
+    );
 
-        // Feature Flags - Controlled rollout in production
-        featureFlags: {
-          'enable_dark_mode': true,
-          'enable_notifications': true,
-          'enable_analytics': true,
-          'enable_crashlytics': true,
-          'enable_social_login': true,
-          'enable_payments': true,
-          'enable_chat': true,
-          'enable_video_calls': false, // Example: Feature not yet released
-          'enable_beta_features': false, // Beta features disabled in prod
-        },
+    // Validate required production values
+    assert(
+      apiBaseUrl.isNotEmpty,
+      '❌ PRODUCTION BUILD ERROR: API_BASE_URL must be provided via --dart-define',
+    );
+    assert(
+      firebaseApiKey.isNotEmpty,
+      '❌ PRODUCTION BUILD ERROR: FIREBASE_API_KEY must be provided via --dart-define',
+    );
+    assert(
+      firebaseAppId.isNotEmpty,
+      '❌ PRODUCTION BUILD ERROR: FIREBASE_APP_ID must be provided via --dart-define',
+    );
+    assert(
+      firebaseMessagingSenderId.isNotEmpty,
+      '❌ PRODUCTION BUILD ERROR: FIREBASE_MESSAGING_SENDER_ID must be provided via --dart-define',
+    );
+    assert(
+      firebaseProjectId.isNotEmpty,
+      '❌ PRODUCTION BUILD ERROR: FIREBASE_PROJECT_ID must be provided via --dart-define',
+    );
+    assert(
+      encryptionKey.isNotEmpty && encryptionKey.length >= 32,
+      '❌ PRODUCTION BUILD ERROR: ENCRYPTION_KEY must be provided (min 32 characters) via --dart-define',
+    );
 
-        // Debug settings
-        debugMode: false,
+    return AppConfig(
+      environment: Environment.production,
 
-        // Log level: 1 = INFO (production logging - no debug logs)
-        logLevel: 1,
+      // Production API endpoint (from --dart-define)
+      apiBaseUrl: apiBaseUrl,
 
-        // Encryption key for secure storage (production key)
-        // TODO: Replace with your actual production encryption key
-        // IMPORTANT: Keep this secure and different from dev
-        appEncryptionKey: 'prod_encryption_key_32_chars!!',
+      // Firebase Production Project Configuration (from --dart-define)
+      firebaseApiKey: firebaseApiKey,
+      firebaseAppId: firebaseAppId,
+      firebaseMessagingSenderId: firebaseMessagingSenderId,
+      firebaseProjectId: firebaseProjectId,
 
-        // App name
-        appName: 'Social App',
+      // Feature Flags - Controlled rollout in production
+      featureFlags: const {
+        'enable_dark_mode': true,
+        'enable_notifications': true,
+        'enable_analytics': true,
+        'enable_crashlytics': true,
+        'enable_social_login': true,
+        'enable_payments': true,
+        'enable_chat': true,
+        'enable_video_calls': false, // Example: Feature not yet released
+        'enable_beta_features': false, // Beta features disabled in prod
+      },
 
-        // Application ID (bundle identifier)
-        applicationId: 'com.yourapp.social',
+      // Debug settings
+      debugMode: false,
 
-        // Optional: Google Maps API Key (production key with appropriate quota)
-        googleMapsApiKey: null, // Add if needed: 'YOUR_PROD_GOOGLE_MAPS_KEY',
+      // Log level: 1 = INFO (production logging - no debug logs)
+      logLevel: 1,
 
-        // Optional: Stripe publishable key (live mode)
-        stripePublishableKey: null, // Add if needed: 'pk_live_YOUR_PROD_STRIPE_KEY',
+      // Encryption key for secure storage (from --dart-define)
+      appEncryptionKey: encryptionKey,
 
-        // Optional: Sentry DSN for additional error tracking
-        sentryDsn: null, // Add if needed: 'https://YOUR_PROD_SENTRY_DSN',
-      );
+      // App name
+      appName: const String.fromEnvironment(
+        'APP_NAME',
+        defaultValue: 'Social App',
+      ),
+
+      // Application ID (bundle identifier)
+      applicationId: const String.fromEnvironment(
+        'APPLICATION_ID',
+        defaultValue: 'com.yourapp.social',
+      ),
+
+      // Optional: Google Maps API Key (production key with appropriate quota)
+      googleMapsApiKey: const String.fromEnvironment(
+        'GOOGLE_MAPS_API_KEY',
+        defaultValue: '',
+      ).isEmpty
+          ? null
+          : const String.fromEnvironment('GOOGLE_MAPS_API_KEY'),
+
+      // Optional: Stripe publishable key (live mode)
+      stripePublishableKey: const String.fromEnvironment(
+        'STRIPE_PUBLISHABLE_KEY',
+        defaultValue: '',
+      ).isEmpty
+          ? null
+          : const String.fromEnvironment('STRIPE_PUBLISHABLE_KEY'),
+
+      // Optional: Sentry DSN for additional error tracking
+      sentryDsn: const String.fromEnvironment(
+        'SENTRY_DSN',
+        defaultValue: '',
+      ).isEmpty
+          ? null
+          : const String.fromEnvironment('SENTRY_DSN'),
+    );
+  }
 }
 

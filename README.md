@@ -1,452 +1,226 @@
-# Flutter Social App - Clean Architecture with BLoC
-
-A production-ready Flutter application demonstrating clean architecture principles with offline-first capabilities, using BLoC for state management and DummyJSON API for backend services.
-
+# Flutter Social App - Production-Ready Clean Architecture
+A production-ready Flutter application demonstrating clean architecture principles with offline-first capabilities, environment-based configuration, comprehensive logging, and Firebase Crashlytics integration.
 ## 📋 Table of Contents
-
 - [Overview](#overview)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
-- [Project Setup](#project-setup)
-- [Demo Credentials](#demo-credentials)
-- [Architecture](#architecture)
 - [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Running the App](#running-the-app)
+- [Building for Production](#building-for-production)
 - [Documentation](#documentation)
-- [License](#license)
-
 ---
-
 ## 🎯 Overview
-
-This application showcases modern Flutter development practices including:
-- **Clean Architecture** with clear separation of concerns
-- **Offline-First** approach with local caching
+This application showcases **production-grade** Flutter development practices including:
+### Core Principles
+- **Clean Architecture** with clear separation of concerns (Domain, Data, Presentation)
 - **BLoC Pattern** for predictable state management
-- **Dependency Injection** with GetIt
-- **Secure Storage** for authentication tokens
-- **Comprehensive Testing** with unit, widget, and BLoC tests
-
+- **Offline-First** approach with local caching
+- **Environment-Based Configuration** (Development & Production)
+- **Comprehensive Logging System** with multiple log levels
+- **Firebase Crashlytics Integration** for error tracking
+### Production Features
+- ✅ Multiple environment support (dev/prod)
+- ✅ Environment variables via `.env` files
+- ✅ Multi-level logging (DEBUG, INFO, WARNING, ERROR, FATAL)
+- ✅ Firebase Crashlytics with custom keys and breadcrumbs
+- ✅ Automatic error reporting and crash tracking
+- ✅ Android product flavors (dev/prod)
+- ✅ Build scripts and Makefile commands
 ---
-
 ## ✨ Features
-
-### 🎬 Implemented Features
-
-#### 1. **Splash Screen**
-- App initialization and setup
-- Authentication status verification
-- Onboarding completion check
-- Automatic navigation to appropriate screen
-
-#### 2. **Onboarding**
-- Three-page swipeable introduction
-- Skip and next navigation
-- First-time user experience
-- Persistent completion status
-
-#### 3. **Authentication**
-- Login with username/password validation
-- JWT token-based authentication
-- Secure token storage with flutter_secure_storage
-- Automatic token refresh via interceptors
-- Session management and logout
-
-#### 4. **Posts Feed**
-- Infinite scroll pagination
-- Pull-to-refresh functionality
-- Offline-first data loading
-- Modern post card UI
-- Error handling with retry mechanism
-- Loading and empty states
-
-### 🚀 Future Enhancements
-
-- [ ] Post detail view with comments
-- [ ] Create, edit, and delete posts
-- [ ] User profile management
-- [ ] Search functionality
-- [ ] Dark mode support
-- [ ] Push notifications
-- [ ] Social sharing
-- [ ] Analytics integration
-
+### Implemented
+- **Environment Configuration**: Separate dev/prod environments with `.env` file support
+- **Logging System**: Multi-level logging with Crashlytics integration
+- **Firebase Crashlytics**: Automatic crash reporting with custom context
+- **Splash Screen**: App initialization and navigation
+- **Onboarding**: Three-page introduction flow
+- **Authentication**: JWT token-based login with secure storage
+- **Posts Feed**: Infinite scroll with offline-first caching
 ---
-
 ## 🛠️ Tech Stack
-
-| Category | Technology | Purpose |
-|----------|-----------|---------|
-| **Framework** | Flutter 3.19+ | Cross-platform UI framework |
-| **Language** | Dart 3.3+ | Programming language |
-| **State Management** | flutter_bloc 8.1+ | Predictable state container |
-| **Networking** | Dio 5.4+ | HTTP client with interceptors |
-| **Local Storage** | Hive 2.2+ | NoSQL database for offline data |
-| **Secure Storage** | flutter_secure_storage 9.2+ | Encrypted storage for tokens |
-| **Settings Storage** | shared_preferences 2.2+ | Key-value storage |
-| **Dependency Injection** | get_it 7.7+ | Service locator pattern |
-| **Navigation** | go_router 14.2+ | Declarative routing |
-| **Functional Programming** | dartz 0.10+ | Either, Option types |
-| **Network Status** | connectivity_plus 6.0+ | Network connectivity detection |
-| **Firebase** | firebase_core 3.9+ | Firebase core functionality |
-| **Crash Reporting** | firebase_crashlytics 4.2+ | Real-time crash reporting |
-| **Code Generation** | build_runner, json_serializable, freezed | Code generation tools |
-| **Testing** | mockito, bloc_test, flutter_test | Testing utilities |
-
+| Category | Technology |
+|----------|-----------|
+| **Framework** | Flutter 3.19+ |
+| **Language** | Dart 3.3+ |
+| **State Management** | flutter_bloc 8.1+ |
+| **Networking** | Dio 5.4+ |
+| **Local Storage** | Hive 2.2+ |
+| **Secure Storage** | flutter_secure_storage 9.2+ |
+| **Dependency Injection** | get_it 7.7+ |
+| **Firebase** | firebase_core, firebase_crashlytics |
 ---
-
-## 🚀 Project Setup
-
+## 📁 Project Structure
+```
+lib/
+├── main.dart, main_dev.dart, main_prod.dart
+├── config/                    # Environment configuration
+│   ├── environment.dart
+│   ├── app_config.dart
+│   └── env_loader.dart
+├── core/                      # Core functionality
+│   ├── api/                   # API client & interceptors
+│   ├── di/                    # Dependency injection
+│   ├── services/              # Firebase services
+│   └── utils/                 # Logger, helpers
+└── features/                  # Feature modules
+    ├── auth/
+    │   ├── data/             # Data layer
+    │   ├── domain/           # Business logic
+    │   └── presentation/     # UI & BLoC
+    ├── posts/
+    ├── onboarding/
+    └── splash/
+```
+---
+## 🚀 Getting Started
 ### Prerequisites
-
 - Flutter SDK >= 3.19.0
 - Dart SDK >= 3.3.0
-- Android Studio / VS Code with Flutter extensions
-- iOS: Xcode 15+ (for iOS development)
-
-### Installation Steps
-
+- Android Studio / VS Code
+- Firebase Account (for Crashlytics)
+### Installation
 1. **Clone the repository**
 ```bash
 git clone <repository-url>
 cd flutter_bloc
 ```
-
 2. **Install dependencies**
 ```bash
 flutter pub get
 ```
-
-3. **Generate code**
+3. **Set up environment variables**
+Create `.env.dev` file:
 ```bash
-dart run build_runner build --delete-conflicting-outputs
+cp .env.example .env.dev
 ```
-
-4. **Run the app**
+Edit `.env.dev` with your values:
+```dotenv
+ENV=dev
+API_BASE_URL=https://dummyjson.com
+FIREBASE_API_KEY=your_firebase_api_key
+FIREBASE_APP_ID=your_firebase_app_id
+FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+FIREBASE_PROJECT_ID=your-project-id
+ENCRYPTION_KEY=your_32_character_encryption_key
+APP_NAME=Social App Dev
+APPLICATION_ID=com.example.flutter_bloc.dev
+```
+4. **Generate code**
 ```bash
-flutter run
+flutter pub run build_runner build --delete-conflicting-outputs
 ```
-
-### Platform-Specific Setup
-
-#### Android
+5. **Run the app**
+From IDE (Android Studio/VS Code):
+- Simply click Run (automatically loads `.env.dev`)
+From Terminal:
 ```bash
-# Debug build
-flutter run --debug
-
-# Release build
-flutter build apk --release
-flutter build appbundle --release
+make dev-run
+# or
+flutter run -t lib/main.dart --flavor dev
 ```
-
-#### iOS
-```bash
-# Debug build
-flutter run --debug
-
-# Release build
-flutter build ios --release
-```
-
-#### Web
-```bash
-flutter run -d chrome
-flutter build web
-```
-
 ---
-
-## 🔐 Demo Credentials
-
-Use these credentials to test the login functionality:
-
-**User 1:**
-- Username: `emilys`
-- Password: `emilyspass`
-
-**User 2:**
-- Username: `michaelw`
-- Password: `michaelwpass`
-
-> **Note:** These credentials are from the DummyJSON API (https://dummyjson.com/users)
-
+## 🏃 Running the App
+### Using Makefile (Recommended)
+```bash
+# Development
+make dev-run              # Run in dev mode
+make dev-build-apk        # Build dev APK
+# Production
+make prod-run             # Run in prod mode
+make prod-build-apk       # Build prod APK
+make prod-build-appbundle # Build App Bundle
+# Utilities
+make clean               # Clean build artifacts
+make generate            # Run code generation
+```
+### Manual Commands
+**Development:**
+```bash
+flutter run -t lib/main_dev.dart --flavor dev
+flutter build apk -t lib/main_dev.dart --flavor dev --debug
+```
+**Production:**
+```bash
+flutter run -t lib/main_prod.dart --flavor prod --release
+flutter build appbundle -t lib/main_prod.dart --flavor prod --release \
+  --obfuscate --split-debug-info=build/symbols
+```
 ---
-
-## 🏗️ Architecture
-
-This app follows **Clean Architecture** principles with three distinct layers:
-
+## 📦 Building for Production
+### Android
+1. **Configure signing** (create `android/key.properties`)
+2. **Build APK**:
+```bash
+make prod-build-apk
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   PRESENTATION LAYER                     │
-│              (UI + BLoC State Management)                │
-│   - Screens/Pages       - BLoC (Events/States)          │
-│   - Widgets             - Dependency Injection           │
-├─────────────────────────────────────────────────────────┤
-│                      DOMAIN LAYER                        │
-│          (Business Logic - Framework Independent)        │
-│   - Entities            - Repository Interfaces          │
-│   - Use Cases           - Failures                       │
-├─────────────────────────────────────────────────────────┤
-│                       DATA LAYER                         │
-│    (Data Sources, API, Database, Implementations)        │
-│   - Repository Impl     - Models/DTOs                    │
-│   - Remote Data Source  - Local Data Source             │
-│   - API Client          - Mappers                        │
-└─────────────────────────────────────────────────────────┘
+3. **Build App Bundle** (Play Store):
+```bash
+make prod-build-appbundle
 ```
-
-### Layer Responsibilities
-
-**Presentation Layer:**
-- UI Components (Screens, Widgets)
-- BLoC for state management
-- Events and States
-- User interactions
-- Navigation
-
-**Domain Layer:**
-- Business entities
-- Use cases (business logic)
-- Repository interfaces
-- Error handling (Failures)
-
-**Data Layer:**
-- Repository implementations
-- API communication
-- Local database operations
-- DTO ↔ Entity mapping
-- Caching strategy
-
+Output: `build/app/outputs/bundle/prodRelease/app-prod-release.aab`
+### iOS
+1. Configure Xcode signing
+2. Build:
+```bash
+make prod-build-ios
+```
 ---
-
-## 📁 Project Structure
-
-```
-lib/
-├── core/                           # Core application utilities
-│   ├── api/
-│   │   ├── api_client.dart        # Dio configuration
-│   │   ├── api_interceptors.dart  # Auth, logging, cache interceptors
-│   │   └── api_endpoints.dart     # API endpoint constants
-│   ├── constants/
-│   │   ├── app_constants.dart
-│   │   └── storage_keys.dart
-│   ├── di/
-│   │   └── injection_container.dart  # GetIt DI setup
-│   ├── errors/
-│   │   ├── exceptions.dart        # Custom exceptions
-│   │   └── failures.dart          # Failure classes
-│   ├── network/
-│   │   └── network_info.dart      # Connectivity check
-│   ├── router/
-│   │   └── app_router.dart        # GoRouter configuration
-│   ├── storage/
-│   │   ├── secure_storage_service.dart    # Token storage
-│   │   ├── local_storage_service.dart     # Hive operations
-│   │   └── settings_storage_service.dart  # SharedPreferences
-│   └── utils/
-│       ├── logger.dart
-│       └── validators.dart
-│
-├── features/                       # Feature modules
-│   ├── splash/
-│   │   └── presentation/
-│   │       ├── bloc/
-│   │       └── pages/
-│   │
-│   ├── onboarding/
-│   │   └── presentation/
-│   │       └── pages/
-│   │
-│   ├── auth/                      # Authentication feature
-│   │   ├── data/
-│   │   │   ├── datasources/
-│   │   │   │   ├── auth_local_data_source.dart
-│   │   │   │   └── auth_remote_data_source.dart
-│   │   │   ├── models/
-│   │   │   │   ├── auth_response_dto.dart
-│   │   │   │   └── user_dto.dart
-│   │   │   └── repositories/
-│   │   │       └── auth_repository_impl.dart
-│   │   ├── domain/
-│   │   │   ├── entities/
-│   │   │   │   ├── auth_response.dart
-│   │   │   │   └── user.dart
-│   │   │   ├── repositories/
-│   │   │   │   └── auth_repository.dart
-│   │   │   └── usecases/
-│   │   │       ├── login_usecase.dart
-│   │   │       ├── logout_usecase.dart
-│   │   │       └── get_current_user_usecase.dart
-│   │   └── presentation/
-│   │       ├── bloc/
-│   │       │   ├── auth_bloc.dart
-│   │       │   ├── auth_event.dart
-│   │       │   └── auth_state.dart
-│   │       └── pages/
-│   │           └── login_screen.dart
-│   │
-│   └── posts/                     # Posts feed feature
-│       ├── data/
-│       │   ├── datasources/
-│       │   ├── models/
-│       │   └── repositories/
-│       ├── domain/
-│       │   ├── entities/
-│       │   ├── repositories/
-│       │   └── usecases/
-│       └── presentation/
-│           ├── bloc/
-│           ├── pages/
-│           └── widgets/
-│
-└── main.dart                      # App entry point
-```
-
----
-
 ## 📚 Documentation
-
-For detailed implementation and testing guides, refer to:
-
-- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Complete architecture details, data flow, and implementation patterns
-- **[TEST_IMPLEMENTATION.md](TEST_IMPLEMENTATION.md)** - Comprehensive testing guide with examples
-
+For detailed documentation, see:
+- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Complete implementation guide:
+  - Environment Configuration
+  - Logging System
+  - Firebase Crashlytics Integration
+  - Project Structure
+  - Secrets Management
+- **[TEST_IMPLEMENTATION.md](TEST_IMPLEMENTATION.md)** - Testing guide:
+  - Unit testing
+  - BLoC testing
+  - Repository testing
+  - Coverage reports
 ---
-
 ## 🧪 Testing
-
 ```bash
 # Run all tests
 flutter test
-
-# Run tests with coverage
+# Run with coverage
 flutter test --coverage
-
-# Run specific test file
-flutter test test/features/auth/domain/entities/user_test.dart
-
-# Generate coverage report
-genhtml coverage/lcov.info -o coverage/html
-open coverage/html/index.html
+# Specific test
+flutter test test/features/auth/domain/usecases/login_usecase_test.dart
 ```
-
 ---
-
-## 🔄 App Flow
-
-```
-App Launch
-    ↓
-Splash Screen (Initialize)
-    ↓
-Check Onboarding Status
-    ↓
-    ├─→ First Time? → Onboarding → Login
-    │
-    └─→ Returning? → Check Auth Token
-                          ↓
-                    ├─→ Valid Token → Home (Posts)
-                    │
-                    └─→ No Token → Login → Home (Posts)
-```
-
+## 🔐 Demo Credentials
+Test login with DummyJSON API:
+| Username | Password |
+|----------|----------|
+| `emilys` | `emilyspass` |
+| `michaelw` | `michaelwpass` |
 ---
-
+## 🏗️ Architecture
+Clean Architecture with three layers:
+```
+┌─────────────────────────────┐
+│    PRESENTATION LAYER       │
+│  (UI + BLoC)                │
+├─────────────────────────────┤
+│      DOMAIN LAYER           │
+│  (Business Logic)           │
+├─────────────────────────────┤
+│       DATA LAYER            │
+│  (API + Database)           │
+└─────────────────────────────┘
+```
+**Data Flow**: UI → BLoC → Use Case → Repository → Data Source
+---
 ## 🤝 Contributing
-
-Contributions are welcome! Please follow these guidelines:
-
+Contributions welcome! Please:
 1. Follow Flutter best practices
-2. Write tests for new features
-3. Update documentation
-4. Follow the existing code style
-5. Use meaningful commit messages
-
+2. Maintain clean architecture principles
+3. Write tests for new features
+4. Update documentation
 ---
-
-## 🏭 Production-Grade Features
-
-This app includes enterprise-level features for production deployment:
-
-### Environment Configuration
-- ✅ **Dual Environments**: Separate development and production configurations
-- ✅ **Entry Points**: Multiple entry points (`main.dart`, `main_dev.dart`, `main_prod.dart`)
-- ✅ **Feature Flags**: Controlled feature rollout system
-- ✅ **Type-Safe Config**: Strongly-typed configuration model
-- ✅ **API Switching**: Automatic API endpoint switching based on environment
-
-### Logging & Monitoring
-- ✅ **Multi-Level Logging**: DEBUG, INFO, WARNING, ERROR, FATAL
-- ✅ **Environment-Aware**: Different log levels for dev/prod
-- ✅ **Context Tracking**: Automatic timestamp and context injection
-- ✅ **Network Logging**: Request/response logging for debugging
-- ✅ **User Action Logging**: Track user behavior and journey
-
-### Firebase Crashlytics Integration
-- ✅ **Automatic Crash Reporting**: Catches all uncaught errors
-- ✅ **Custom Keys & Breadcrumbs**: Rich context for debugging
-- ✅ **User Identification**: Associate crashes with specific users
-- ✅ **Non-Fatal Exceptions**: Track handled exceptions
-- ✅ **Environment Separation**: Separate Firebase projects for dev/prod
-- ✅ **Build Flavors**: Android flavors for dev and prod builds
-- ✅ **Test Screen**: Comprehensive testing interface for verification
-
-### Build & Deployment
-- ✅ **Product Flavors**: Android dev/prod flavors with different bundle IDs
-- ✅ **Firebase Integration**: Automated Firebase configuration per flavor
-- ✅ **Error Handling**: Production-grade error handling with `runZonedGuarded`
-
-### Running Different Environments
-
-**Development:**
-```bash
-# Run dev environment
-flutter run -t lib/main_dev.dart --flavor dev
-
-# Build dev APK
-flutter build apk -t lib/main_dev.dart --flavor dev
-```
-
-**Production:**
-```bash
-# Run prod environment
-flutter run -t lib/main_prod.dart --flavor prod
-
-# Build prod release
-flutter build apk -t lib/main_prod.dart --flavor prod --release
-flutter build appbundle -t lib/main_prod.dart --flavor prod --release
-```
-
-### Quick Reference Guides
-
-- **[ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md)** - Complete setup strategy and architecture
-- **[ENVIRONMENT_IMPLEMENTATION.md](ENVIRONMENT_IMPLEMENTATION.md)** - Implementation details and usage
-- **[CRASHLYTICS_GUIDE.md](CRASHLYTICS_GUIDE.md)** - Quick reference for Crashlytics operations
-- **[TEST_IMPLEMENTATION.md](TEST_IMPLEMENTATION.md)** - Testing strategy and examples
-
----
-
 ## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
+This project is licensed under the MIT License.
 ---
-
-## 📞 Support
-
-For issues and questions:
-- Create an issue on GitHub
-- Check existing documentation
-- Review the implementation guide
-
----
-
-**Version:** 2.0.0  
-**Last Updated:** January 29, 2026  
-**Status:** ✅ Production Ready with Firebase Crashlytics
-
----
-
-**Built with ❤️ using Flutter and Clean Architecture**
-
+**Built with ❤️ using Flutter**

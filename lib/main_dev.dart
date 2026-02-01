@@ -10,10 +10,12 @@ import 'core/utils/app_logger.dart';
 /// Development entry point
 ///
 /// Run this file for development builds:
-/// flutter run -t lib/main_dev.dart
+/// - From IDE: flutter run -t lib/main_dev.dart
+/// - From terminal: make dev-run
 ///
-/// Or for build:
-/// flutter build apk -t lib/main_dev.dart --flavor dev
+/// Works with both:
+/// - IDE run (loads from .env.dev file)
+/// - make dev-run (uses --dart-define flags)
 void main() async {
   // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,8 +23,9 @@ void main() async {
   // Set the environment to development
   EnvironmentConfig.setEnvironment(Environment.development);
 
-  // Load development configuration
-  final config = DevConfig.config;
+  // Load development configuration from .env.dev
+  // Priority: --dart-define (make dev-run) > .env file (IDE run)
+  final config = await DevConfig.loadConfig();
 
   // Initialize the logger with dev configuration
   AppLogger.init(
@@ -33,7 +36,8 @@ void main() async {
 
   // Log app startup
   AppLogger.info('🚀 Starting app in DEVELOPMENT mode');
-  AppLogger.debug('Configuration: $config');
+  AppLogger.debug('Configuration loaded');
+  AppLogger.debug('API Base URL: ${config.apiBaseUrl}');
 
   // Initialize Firebase and Crashlytics
   try {

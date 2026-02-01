@@ -1,1418 +1,910 @@
-# Implementation Guide - Flutter Clean Architecture
-
-Complete guide on how this Flutter application is implemented using Clean Architecture, BLoC pattern, and offline-first approach.
-
+# Flutter Social App - Complete Implementation Guide
+This document provides a comprehensive guide to all implementations in this production-ready Flutter application.
 ## 📋 Table of Contents
-
-- [Architecture Overview](#architecture-overview)
-- [Clean Architecture Layers](#clean-architecture-layers)
-- [Project Structure](#project-structure)
-- [BLoC Pattern](#bloc-pattern)
-- [Dependency Injection](#dependency-injection)
-- [Storage Strategy](#storage-strategy)
-- [API Integration](#api-integration)
-- [Data Flow](#data-flow)
-- [Auth Feature Deep Dive](#auth-feature-deep-dive)
-- [Error Handling](#error-handling)
-- [Best Practices](#best-practices)
-
+1. [Environment Configuration](#1-environment-configuration)
+2. [Logging System](#2-logging-system)
+3. [Firebase Crashlytics Integration](#3-firebase-crashlytics-integration)
+4. [Fastlane Setup](#4-fastlane-setup)
+5. [GitHub Actions CI/CD](#5-github-actions-cicd)
+6. [Project Structure](#6-project-structure)
+7. [Secrets Management](#7-secrets-management)
+8. [Testing Strategy](#8-testing-strategy)
 ---
-
-## 🏗️ Architecture Overview
-
-This application implements **Clean Architecture** principles with three distinct layers, ensuring:
-- **Separation of Concerns**
-- **Testability**
-- **Maintainability**
-- **Scalability**
-- **Framework Independence**
-
-### The Three Layers
-
+## 1. Environment Configuration
+### Overview
+The app supports **two environments** with separate configurations:
+- **Development**: For testing and development
+- **Production**: For release builds
+### Implementation Status: ✅ Complete
+### Features
+- ✅ Separate dev and prod environments
+- ✅ Environment-specific API endpoints
+- ✅ Firebase project separation (dev/prod)
+- ✅ Feature flags system
+- ✅ Type-safe configuration model
+- ✅ `.env.dev` file support for IDE runs
+- ✅ `--dart-define` support for build scripts
+- ✅ Android product flavors
+- ✅ iOS schemes support
+### File Structure
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     PRESENTATION LAYER                           │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐ │
-│  │   Screens   │→ │    BLoC     │→ │  Dependency Injection   │ │
-│  │   Widgets   │  │Events/States│  │      (GetIt)            │ │
-│  └─────────────┘  └─────────────┘  └─────────────────────────┘ │
-├─────────────────────────────────────────────────────────────────┤
-│                       DOMAIN LAYER                               │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐ │
-│  │  Entities   │  │  Use Cases  │  │ Repository Interfaces   │ │
-│  │  (Models)   │  │  (Business) │  │     (Contracts)         │ │
-│  └─────────────┘  └─────────────┘  └─────────────────────────┘ │
-├─────────────────────────────────────────────────────────────────┤
-│                        DATA LAYER                                │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐ │
-│  │Repository   │  │Data Sources │  │      Models/DTOs        │ │
-│  │Implement    │  │Remote/Local │  │       (JSON)            │ │
-│  └─────────────┘  └─────────────┘  └─────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
+lib/config/
+├── environment.dart          # Environment enum
+├── app_config.dart          # Configuration model
+├── env_loader.dart          # Load .env files
+└── env/
+    ├── dev_config.dart      # Dev config (legacy)
+    └── prod_config.dart     # Prod config (legacy)
 ```
-
----
-
-## 🎯 Clean Architecture Layers
-
-### 1. Presentation Layer
-
-**Responsibility:** Handle UI and user interactions
-
-**Components:**
-- **Pages/Screens:** UI layouts
-- **Widgets:** Reusable UI components
-- **BLoC:** Business logic components
-  - Events: User actions
-  - States: UI states
-- **Dependency Injection:** Service registration
-
-**Rules:**
-- Can depend on Domain layer
-- Cannot depend on Data layer
-- Communicates with domain via BLoC
-
-**Example Structure:**
+### Core Files
+#### 1. environment.dart
 ```dart
-features/auth/presentation/
-├── bloc/
-│   ├── auth_bloc.dart      # Business logic
-│   ├── auth_event.dart     # User actions
-│   └── auth_state.dart     # UI states
-└── pages/
-    └── login_screen.dart   # UI
+enum Environment {
+  development,
+  production,
+}
+class EnvironmentConfig {
+  static Environment _environment = Environment.development;
+  static void setEnvironment(Environment env) {
+    _environment = env;
+  }
+  static Environment get environment => _environment;
+  static bool get isDevelopment => _environment == Environment.development;
+  static bool get isProduction => _environment == Environment.production;
+}
 ```
-
----
-
-### 2. Domain Layer
-
-**Responsibility:** Define business logic and rules (Framework independent)
-
-**Components:**
-- **Entities:** Core business models
-- **Use Cases:** Business operations
-- **Repository Interfaces:** Data contracts
-- **Failures:** Error definitions
-
-**Rules:**
-- No dependencies on other layers
-- Pure Dart code (no Flutter imports)
-- Defines contracts (interfaces)
-
-**Example Structure:**
+#### 2. app_config.dart
 ```dart
-features/auth/domain/
-├── entities/
-│   ├── user.dart               # Business entity
-│   └── auth_response.dart      # Response entity
-├── repositories/
-│   └── auth_repository.dart    # Repository contract
-└── usecases/
-    ├── login_usecase.dart      # Login business logic
-    ├── logout_usecase.dart     # Logout business logic
-    └── get_current_user_usecase.dart
-```
-
-**Entity Example:**
-```dart
-class User extends Equatable {
-  final int id;
-  final String username;
-  final String email;
-  final String firstName;
-  final String lastName;
-  final String? image;
-
-  const User({
-    required this.id,
-    required this.username,
-    required this.email,
-    required this.firstName,
-    required this.lastName,
-    this.image,
+class AppConfig {
+  final Environment environment;
+  final String apiBaseUrl;
+  final String firebaseApiKey;
+  final String firebaseAppId;
+  final String firebaseMessagingSenderId;
+  final String firebaseProjectId;
+  final Map<String, bool> featureFlags;
+  final bool debugMode;
+  final int logLevel;
+  final String appEncryptionKey;
+  final String appName;
+  final String applicationId;
+  final String? googleMapsApiKey;
+  final String? stripePublishableKey;
+  final String? sentryDsn;
+  const AppConfig({
+    required this.environment,
+    required this.apiBaseUrl,
+    required this.firebaseApiKey,
+    required this.firebaseAppId,
+    required this.firebaseMessagingSenderId,
+    required this.firebaseProjectId,
+    required this.featureFlags,
+    required this.debugMode,
+    required this.logLevel,
+    required this.appEncryptionKey,
+    required this.appName,
+    required this.applicationId,
+    this.googleMapsApiKey,
+    this.stripePublishableKey,
+    this.sentryDsn,
   });
-
-  String get fullName => '$firstName $lastName';
-
-  @override
-  List<Object?> get props => [id, username, email, firstName, lastName, image];
-}
-```
-
----
-
-### 3. Data Layer
-
-**Responsibility:** Handle data operations (API, Database, Cache)
-
-**Components:**
-- **Repository Implementations:** Implement domain contracts
-- **Data Sources:**
-  - Remote: API calls
-  - Local: Database operations
-- **Models/DTOs:** JSON serialization
-- **Mappers:** Convert DTO ↔ Entity
-
-**Rules:**
-- Implements domain repository interfaces
-- Handles data from multiple sources
-- Maps DTOs to domain entities
-
-**Example Structure:**
-```dart
-features/auth/data/
-├── datasources/
-│   ├── auth_remote_data_source.dart  # API calls
-│   └── auth_local_data_source.dart   # Cache operations
-├── models/
-│   ├── user_dto.dart                 # JSON model
-│   └── auth_response_dto.dart        # JSON model
-└── repositories/
-    └── auth_repository_impl.dart     # Repository implementation
-```
-
-**DTO Example:**
-```dart
-@JsonSerializable()
-class UserDto {
-  final int id;
-  final String username;
-  final String email;
-  final String firstName;
-  final String lastName;
-  final String? image;
-
-  UserDto({
-    required this.id,
-    required this.username,
-    required this.email,
-    required this.firstName,
-    required this.lastName,
-    this.image,
-  });
-
-  // JSON serialization
-  factory UserDto.fromJson(Map<String, dynamic> json) => _$UserDtoFromJson(json);
-  Map<String, dynamic> toJson() => _$UserDtoToJson(this);
-
-  // Convert to domain entity
-  User toEntity() {
-    return User(
-      id: id,
-      username: username,
-      email: email,
-      firstName: firstName,
-      lastName: lastName,
-      image: image,
-    );
+  bool isFeatureEnabled(String featureName) {
+    return featureFlags[featureName] ?? false;
+  }
+  String get logLevelName {
+    switch (logLevel) {
+      case 0: return 'DEBUG';
+      case 1: return 'INFO';
+      case 2: return 'WARNING';
+      case 3: return 'ERROR';
+      case 4: return 'FATAL';
+      default: return 'UNKNOWN';
+    }
   }
 }
 ```
-
----
-
-## 📂 Project Structure
-
-### Core Module
-
-```
-lib/core/
-├── api/
-│   ├── api_client.dart              # Dio setup
-│   ├── api_interceptors.dart        # Request/Response interceptors
-│   └── api_endpoints.dart           # API URLs
-│
-├── constants/
-│   ├── app_constants.dart           # App-wide constants
-│   └── storage_keys.dart            # Storage key constants
-│
-├── di/
-│   └── injection_container.dart     # GetIt DI configuration
-│
-├── errors/
-│   ├── exceptions.dart              # Custom exceptions
-│   └── failures.dart                # Failure classes (Left side of Either)
-│
-├── network/
-│   └── network_info.dart            # Connectivity checker
-│
-├── router/
-│   └── app_router.dart              # GoRouter configuration
-│
-├── storage/
-│   ├── secure_storage_service.dart  # flutter_secure_storage wrapper
-│   ├── local_storage_service.dart   # Hive wrapper
-│   └── settings_storage_service.dart # SharedPreferences wrapper
-│
-└── utils/
-    ├── logger.dart                  # Logging utility
-    └── validators.dart              # Input validators
-```
-
-### Feature Module Structure
-
-Each feature follows the same clean architecture pattern:
-
-```
-features/<feature_name>/
-├── data/
-│   ├── datasources/
-│   │   ├── <feature>_remote_data_source.dart
-│   │   └── <feature>_local_data_source.dart
-│   ├── models/
-│   │   └── <model>_dto.dart
-│   └── repositories/
-│       └── <feature>_repository_impl.dart
-│
-├── domain/
-│   ├── entities/
-│   │   └── <entity>.dart
-│   ├── repositories/
-│   │   └── <feature>_repository.dart
-│   └── usecases/
-│       ├── <operation>_usecase.dart
-│       └── ...
-│
-└── presentation/
-    ├── bloc/
-    │   ├── <feature>_bloc.dart
-    │   ├── <feature>_event.dart
-    │   └── <feature>_state.dart
-    ├── pages/
-    │   └── <screen>.dart
-    └── widgets/
-        └── <widget>.dart
-```
-
----
-
-## 🔄 BLoC Pattern
-
-### What is BLoC?
-
-**Business Logic Component** - A design pattern for managing state in Flutter applications.
-
-### Key Concepts
-
-1. **Events:** User actions/triggers
-2. **States:** UI states
-3. **BLoC:** Processes events and emits states
-
-### BLoC Flow
-
-```
-User Interaction (UI)
-        ↓
-    Add Event
-        ↓
-    ┌─────────┐
-    │  BLoC   │ ← Use Cases (Domain Layer)
-    └─────────┘
-        ↓
-   Emit State
-        ↓
-   Update UI
-```
-
-### BLoC Implementation Example
-
-**1. Define Events:**
+#### 3. env_loader.dart
+Loads environment variables from `.env.dev` or `.env.prod` files:
 ```dart
-// auth_event.dart
-abstract class AuthEvent extends Equatable {
-  const AuthEvent();
-  
-  @override
-  List<Object?> get props => [];
-}
-
-class AuthLoginRequested extends AuthEvent {
-  final String username;
-  final String password;
-
-  const AuthLoginRequested({
-    required this.username,
-    required this.password,
-  });
-
-  @override
-  List<Object> get props => [username, password];
-}
-
-class AuthLogoutRequested extends AuthEvent {
-  const AuthLogoutRequested();
-}
-
-class AuthCheckRequested extends AuthEvent {
-  const AuthCheckRequested();
-}
-```
-
-**2. Define States:**
-```dart
-// auth_state.dart
-abstract class AuthState extends Equatable {
-  const AuthState();
-  
-  @override
-  List<Object?> get props => [];
-}
-
-class AuthInitial extends AuthState {
-  const AuthInitial();
-}
-
-class AuthLoading extends AuthState {
-  const AuthLoading();
-}
-
-class AuthAuthenticated extends AuthState {
-  final User user;
-
-  const AuthAuthenticated(this.user);
-
-  @override
-  List<Object> get props => [user];
-}
-
-class AuthUnauthenticated extends AuthState {
-  const AuthUnauthenticated();
-}
-
-class AuthError extends AuthState {
-  final String message;
-
-  const AuthError(this.message);
-
-  @override
-  List<Object> get props => [message];
-}
-```
-
-**3. Implement BLoC:**
-```dart
-// auth_bloc.dart
-class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final LoginUseCase loginUseCase;
-  final LogoutUseCase logoutUseCase;
-  final GetCurrentUserUseCase getCurrentUserUseCase;
-
-  AuthBloc({
-    required this.loginUseCase,
-    required this.logoutUseCase,
-    required this.getCurrentUserUseCase,
-  }) : super(const AuthInitial()) {
-    on<AuthLoginRequested>(_onLoginRequested);
-    on<AuthLogoutRequested>(_onLogoutRequested);
-    on<AuthCheckRequested>(_onAuthCheckRequested);
+class EnvLoader {
+  static Future<Map<String, String>> load(String envFile) async {
+    final env = <String, String>{};
+    final file = File(envFile);
+    if (!await file.exists()) {
+      debugPrint('⚠️  Environment file not found: $envFile');
+      return env;
+    }
+    final lines = await file.readAsLines();
+    for (var line in lines) {
+      line = line.trim();
+      if (line.isEmpty || line.startsWith('#')) continue;
+      final separatorIndex = line.indexOf('=');
+      if (separatorIndex == -1) continue;
+      final key = line.substring(0, separatorIndex).trim();
+      var value = line.substring(separatorIndex + 1).trim();
+      // Remove quotes
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.substring(1, value.length - 1);
+      }
+      env[key] = value;
+    }
+    return env;
   }
-
-  Future<void> _onLoginRequested(
-    AuthLoginRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(const AuthLoading());
-
-    final result = await loginUseCase(
-      LoginParams(
-        username: event.username,
-        password: event.password,
-      ),
-    );
-
-    result.fold(
-      (failure) => emit(AuthError(failure.message)),
-      (authResponse) => emit(AuthAuthenticated(authResponse.user)),
-    );
-  }
-
-  Future<void> _onLogoutRequested(
-    AuthLogoutRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    await logoutUseCase();
-    emit(const AuthUnauthenticated());
-  }
-
-  Future<void> _onAuthCheckRequested(
-    AuthCheckRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(const AuthLoading());
-
-    final result = await getCurrentUserUseCase();
-
-    result.fold(
-      (failure) => emit(const AuthUnauthenticated()),
-      (user) => emit(AuthAuthenticated(user)),
-    );
+  static String getVar(String key, Map<String, String> envMap, {String defaultValue = ''}) {
+    // Priority: --dart-define > .env file > default
+    final compileTimeValue = String.fromEnvironment(key, defaultValue: '');
+    if (compileTimeValue.isNotEmpty) return compileTimeValue;
+    if (envMap.containsKey(key) && envMap[key]!.isNotEmpty) {
+      return envMap[key]!;
+    }
+    return defaultValue;
   }
 }
 ```
-
-**4. Use in UI:**
-```dart
-class LoginScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return BlocConsumer<AuthBloc, AuthState>(
-      listener: (context, state) {
-        if (state is AuthAuthenticated) {
-          // Navigate to home
-          context.go('/home');
-        } else if (state is AuthError) {
-          // Show error message
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
-        }
-      },
-      builder: (context, state) {
-        if (state is AuthLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        return LoginForm(
-          onSubmit: (username, password) {
-            context.read<AuthBloc>().add(
-              AuthLoginRequested(
-                username: username,
-                password: password,
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-}
-```
-
----
-
-## 💉 Dependency Injection
-
-### Why GetIt?
-
-- Service locator pattern
-- Easy to test
-- No code generation needed
-- Lazy and factory registration
-
-### Setup (injection_container.dart)
-
-```dart
-final sl = GetIt.instance;
-
-Future<void> init() async {
-  // ===== Features =====
-  
-  // Auth BLoC
-  sl.registerFactory(
-    () => AuthBloc(
-      loginUseCase: sl(),
-      logoutUseCase: sl(),
-      getCurrentUserUseCase: sl(),
-    ),
-  );
-
-  // Auth Use Cases
-  sl.registerLazySingleton(() => LoginUseCase(sl()));
-  sl.registerLazySingleton(() => LogoutUseCase(sl()));
-  sl.registerLazySingleton(() => GetCurrentUserUseCase(sl()));
-
-  // Auth Repository
-  sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(
-      remoteDataSource: sl(),
-      localDataSource: sl(),
-      secureStorage: sl(),
-      networkInfo: sl(),
-    ),
-  );
-
-  // Auth Data Sources
-  sl.registerLazySingleton<AuthRemoteDataSource>(
-    () => AuthRemoteDataSourceImpl(sl()),
-  );
-
-  sl.registerLazySingleton<AuthLocalDataSource>(
-    () => AuthLocalDataSourceImpl(sl()),
-  );
-
-  // ===== Core =====
-  
-  // API Client
-  sl.registerLazySingleton(() => ApiClient(sl()));
-  
-  // Storage Services
-  sl.registerLazySingleton(() => SecureStorageService());
-  sl.registerLazySingleton(() => LocalStorageService());
-  sl.registerLazySingleton(() => SettingsStorageService());
-  
-  // Network Info
-  sl.registerLazySingleton<NetworkInfo>(
-    () => NetworkInfoImpl(Connectivity()),
-  );
-
-  // External
-  sl.registerLazySingleton(() => Dio());
-  sl.registerLazySingleton(() => Connectivity());
-}
-```
-
-### Usage in main.dart
-
+### Entry Points
+#### main.dart (Default - loads .env.dev)
 ```dart
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize DI
-  await init();
-  
-  // Initialize storage
-  await sl<LocalStorageService>().init();
-  await sl<SettingsStorageService>().init();
-  
-  runApp(MyApp());
+  // Load .env.dev for IDE runs
+  final env = await EnvLoader.load('.env.dev');
+  final envString = EnvLoader.getVar('ENV', env, defaultValue: 'dev');
+  final environment = envString == 'prod' 
+      ? Environment.production 
+      : Environment.development;
+  EnvironmentConfig.setEnvironment(environment);
+  final config = AppConfig(
+    environment: environment,
+    apiBaseUrl: EnvLoader.getVar('API_BASE_URL', env),
+    firebaseApiKey: EnvLoader.getVar('FIREBASE_API_KEY', env),
+    firebaseAppId: EnvLoader.getVar('FIREBASE_APP_ID', env),
+    firebaseMessagingSenderId: EnvLoader.getVar('FIREBASE_MESSAGING_SENDER_ID', env),
+    firebaseProjectId: EnvLoader.getVar('FIREBASE_PROJECT_ID', env),
+    // ... other config
+  );
+  AppLogger.init(
+    logLevel: config.logLevel,
+    enableConsoleOutput: true,
+    environment: config.environment,
+  );
+  await FirebaseService.instance.initialize(config);
+  await initDependencies(config);
+  runApp(MyApp(config: config));
 }
 ```
-
-### Usage in Widgets
-
+#### main_dev.dart (Explicit dev)
 ```dart
-// Provide BLoC
-BlocProvider(
-  create: (context) => sl<AuthBloc>(),
-  child: LoginScreen(),
-)
-
-// Access from context
-context.read<AuthBloc>().add(AuthLoginRequested(...));
-```
-
----
-
-## 💾 Storage Strategy
-
-### Three Types of Storage
-
-#### 1. Secure Storage (flutter_secure_storage)
-
-**Purpose:** Store sensitive data (tokens, credentials)
-
-**Implementation:**
-```dart
-class SecureStorageService {
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
-
-  static const String _accessTokenKey = 'access_token';
-  static const String _refreshTokenKey = 'refresh_token';
-
-  Future<void> saveTokens({
-    required String accessToken,
-    required String refreshToken,
-  }) async {
-    await _storage.write(key: _accessTokenKey, value: accessToken);
-    await _storage.write(key: _refreshTokenKey, value: refreshToken);
-  }
-
-  Future<String?> getAccessToken() async {
-    return await _storage.read(key: _accessTokenKey);
-  }
-
-  Future<String?> getRefreshToken() async {
-    return await _storage.read(key: _refreshTokenKey);
-  }
-
-  Future<void> clearTokens() async {
-    await _storage.delete(key: _accessTokenKey);
-    await _storage.delete(key: _refreshTokenKey);
-  }
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final env = await EnvLoader.load('.env.dev');
+  EnvironmentConfig.setEnvironment(Environment.development);
+  final config = AppConfig(/* dev config */);
+  AppLogger.init(/* ... */);
+  await FirebaseService.instance.initialize(config);
+  await initDependencies(config);
+  runApp(MyApp(config: config));
 }
 ```
-
-**Use Cases:**
-- JWT tokens
-- API keys
-- User credentials
-
----
-
-#### 2. Local Storage (Hive)
-
-**Purpose:** Offline data caching (posts, users, comments)
-
-**Implementation:**
+#### main_prod.dart (Production with error zone)
 ```dart
-class LocalStorageService {
-  late Box usersBox;
-  late Box postsBox;
-
-  Future<void> init() async {
-    await Hive.initFlutter();
-    usersBox = await Hive.openBox('users');
-    postsBox = await Hive.openBox('posts');
-  }
-
-  // Cache operations
-  Future<void> cacheUser(Map<String, dynamic> userData) async {
-    await usersBox.put('current_user', userData);
-  }
-
-  Map<String, dynamic>? getCachedUser() {
-    return usersBox.get('current_user');
-  }
-
-  Future<void> cachePosts(List<Map<String, dynamic>> posts) async {
-    await postsBox.put('posts_list', posts);
-  }
-
-  List<Map<String, dynamic>>? getCachedPosts() {
-    final data = postsBox.get('posts_list');
-    if (data != null) {
-      return List<Map<String, dynamic>>.from(data);
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final env = await EnvLoader.load('.env.prod');
+  EnvironmentConfig.setEnvironment(Environment.production);
+  final config = AppConfig(/* prod config */);
+  AppLogger.init(/* minimal logging */);
+  await FirebaseService.instance.initialize(config);
+  await initDependencies(config);
+  // Production error handling
+  runZonedGuarded(
+    () {
+      FlutterError.onError = (details) {
+        AppLogger.fatal(
+          'Flutter Error',
+          error: details.exception,
+          stackTrace: details.stack,
+        );
+      };
+      runApp(MyApp(config: config));
+    },
+    (error, stackTrace) {
+      AppLogger.fatal(
+        'Uncaught Error',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    },
+  );
+}
+```
+### Environment Files
+#### .env.dev
+```dotenv
+ENV=dev
+API_BASE_URL=https://dummyjson.com
+FIREBASE_API_KEY=your_dev_firebase_api_key
+FIREBASE_APP_ID=your_dev_firebase_app_id
+FIREBASE_MESSAGING_SENDER_ID=your_dev_sender_id
+FIREBASE_PROJECT_ID=your-dev-project-id
+ENCRYPTION_KEY=dev_test_key_32_chars_long_12
+APP_NAME=Social App Dev
+APPLICATION_ID=com.example.flutter_bloc.dev
+```
+#### .env.prod (create for production)
+```dotenv
+ENV=prod
+API_BASE_URL=https://api.yourapp.com
+FIREBASE_API_KEY=your_prod_firebase_api_key
+FIREBASE_APP_ID=your_prod_firebase_app_id
+FIREBASE_MESSAGING_SENDER_ID=your_prod_sender_id
+FIREBASE_PROJECT_ID=your-prod-project-id
+ENCRYPTION_KEY=prod_32_char_key_very_secure_!
+APP_NAME=Social App
+APPLICATION_ID=com.example.flutter_bloc
+```
+### Android Configuration
+#### build.gradle.kts
+```kotlin
+android {
+    flavorDimensions += "environment"
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            resValue("string", "app_name", "Social App Dev")
+            isDefault = true
+        }
+        create("prod") {
+            dimension = "environment"
+            resValue("string", "app_name", "Social App")
+        }
     }
-    return null;
-  }
-
-  Future<void> clearCache() async {
-    await usersBox.clear();
-    await postsBox.clear();
-  }
 }
 ```
-
-**Use Cases:**
-- Offline data
-- Cache API responses
-- Large datasets
-
+#### Firebase Configuration
+```
+android/app/src/
+├── dev/
+│   └── google-services.json   # Dev Firebase config
+└── prod/
+    └── google-services.json   # Prod Firebase config
+```
+### iOS Configuration
+#### Dev.xcconfig
+```
+PRODUCT_BUNDLE_IDENTIFIER = com.example.flutter_bloc.dev
+PRODUCT_NAME = Social App Dev
+```
+#### Prod.xcconfig
+```
+PRODUCT_BUNDLE_IDENTIFIER = com.example.flutter_bloc
+PRODUCT_NAME = Social App
+```
+### Usage
+#### Running from IDE
+1. Open Android Studio / VS Code
+2. Click Run
+3. App automatically loads `.env.dev`
+#### Running with Makefile
+```bash
+# Development
+make dev-run
+# Production
+make prod-run
+```
+#### Manual Commands
+```bash
+# Development
+flutter run -t lib/main_dev.dart --flavor dev \
+  --dart-define=ENV=dev \
+  --dart-define=API_BASE_URL=https://dummyjson.com
+# Production
+flutter run -t lib/main_prod.dart --flavor prod --release \
+  --dart-define=ENV=prod \
+  --dart-define=API_BASE_URL=https://api.yourapp.com
+```
+### Feature Flags
+Control features per environment:
+```dart
+featureFlags: {
+  'enable_dark_mode': true,
+  'enable_notifications': environment == Environment.development,
+  'enable_analytics': environment == Environment.production,
+  'enable_crashlytics': true,
+  'enable_beta_features': environment == Environment.development,
+}
+```
+Usage in code:
+```dart
+if (config.isFeatureEnabled('enable_dark_mode')) {
+  // Show dark mode toggle
+}
+```
 ---
-
-#### 3. Settings Storage (SharedPreferences)
-
-**Purpose:** App settings and simple flags
-
-**Implementation:**
-```dart
-class SettingsStorageService {
-  late SharedPreferences _prefs;
-
-  Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
-  }
-
-  // Onboarding
-  Future<void> setOnboardingCompleted(bool value) async {
-    await _prefs.setBool('onboarding_completed', value);
-  }
-
-  bool isOnboardingCompleted() {
-    return _prefs.getBool('onboarding_completed') ?? false;
-  }
-
-  // Theme
-  Future<void> setDarkMode(bool value) async {
-    await _prefs.setBool('dark_mode', value);
-  }
-
-  bool isDarkMode() {
-    return _prefs.getBool('dark_mode') ?? false;
-  }
-
-  // Clear settings
-  Future<void> clearSettings() async {
-    await _prefs.clear();
-  }
-}
+## 2. Logging System
+### Overview
+Comprehensive logging system with multiple log levels, environment-aware filtering, and automatic Crashlytics integration.
+### Implementation Status: ✅ Complete
+### Features
+- ✅ Multi-level logging (DEBUG, INFO, WARNING, ERROR, FATAL)
+- ✅ Environment-based filtering
+- ✅ Timestamp and context injection
+- ✅ Network request/response logging
+- ✅ User action logging
+- ✅ Performance metric logging
+- ✅ Automatic Crashlytics breadcrumbs
+- ✅ Console output control
+### File Location
 ```
-
-**Use Cases:**
-- Onboarding status
-- Theme preference
-- Language selection
-- Simple flags
-
----
-
-## 🌐 API Integration
-
-### API Client Setup
-
-**Dio Configuration:**
-```dart
-class ApiClient {
-  late final Dio dio;
-
-  ApiClient(SecureStorageService secureStorage) {
-    dio = Dio(
-      BaseOptions(
-        baseUrl: ApiEndpoints.baseUrl,
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ),
-    );
-
-    // Add interceptors
-    dio.interceptors.addAll([
-      AuthInterceptor(secureStorage),
-      LoggingInterceptor(),
-      CacheInterceptor(),
-    ]);
-  }
-}
+lib/core/utils/app_logger.dart
 ```
-
-### Interceptors
-
-**1. Auth Interceptor:**
+### Log Levels
+| Level | Code | Purpose | Dev | Prod |
+|-------|------|---------|-----|------|
+| DEBUG | 0 | Detailed info | ✅ | ❌ |
+| INFO | 1 | General info | ✅ | ✅ |
+| WARNING | 2 | Warnings | ✅ | ✅ |
+| ERROR | 3 | Errors | ✅ | ✅ |
+| FATAL | 4 | Critical errors | ✅ | ✅ |
+### Implementation
 ```dart
-class AuthInterceptor extends Interceptor {
-  final SecureStorageService secureStorage;
-
-  AuthInterceptor(this.secureStorage);
-
-  @override
-  void onRequest(
-    RequestOptions options,
-    RequestInterceptorHandler handler,
-  ) async {
-    final token = await secureStorage.getAccessToken();
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
+class AppLogger {
+  static int _logLevel = 0;
+  static bool _enableConsoleOutput = true;
+  static Environment _environment = Environment.development;
+  static void init({
+    required int logLevel,
+    required bool enableConsoleOutput,
+    required Environment environment,
+  }) {
+    _logLevel = logLevel;
+    _enableConsoleOutput = enableConsoleOutput;
+    _environment = environment;
+  }
+  static void debug(String message, {String? tag, Map<String, dynamic>? context}) {
+    _log(0, 'DEBUG', message, tag: tag, context: context);
+  }
+  static void info(String message, {String? tag, Map<String, dynamic>? context}) {
+    _log(1, 'INFO', message, tag: tag, context: context);
+  }
+  static void warning(String message, {
+    String? tag,
+    Map<String, dynamic>? context,
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
+    _log(2, 'WARNING', message, tag: tag, context: context, error: error, stackTrace: stackTrace);
+  }
+  static void error(String message, {
+    String? tag,
+    Map<String, dynamic>? context,
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
+    _log(3, 'ERROR', message, tag: tag, context: context, error: error, stackTrace: stackTrace);
+    // Send to Crashlytics as non-fatal
+    if (error != null) {
+      CrashlyticsHelper.logError(error, stackTrace, reason: message);
     }
-    handler.next(options);
   }
-
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode == 401) {
-      // Token expired, try to refresh
-      final refreshed = await _refreshToken();
-      if (refreshed) {
-        // Retry original request
-        final response = await _retry(err.requestOptions);
-        handler.resolve(response);
-        return;
+  static void fatal(String message, {
+    String? tag,
+    Map<String, dynamic>? context,
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
+    _log(4, 'FATAL', message, tag: tag, context: context, error: error, stackTrace: stackTrace);
+    // Send to Crashlytics
+    if (error != null) {
+      CrashlyticsHelper.logError(error, stackTrace, reason: message, fatal: true);
+    }
+  }
+  static void _log(
+    int level,
+    String levelName,
+    String message, {
+    String? tag,
+    Map<String, dynamic>? context,
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
+    // Check log level
+    if (level < _logLevel) return;
+    final timestamp = DateTime.now().toIso8601String();
+    final tagStr = tag != null ? '[$tag] ' : '';
+    final logMessage = '$timestamp [$levelName] $tagStr$message';
+    // Console output
+    if (_enableConsoleOutput) {
+      debugPrint(logMessage);
+      if (context != null) {
+        debugPrint('Context: $context');
+      }
+      if (error != null) {
+        debugPrint('Error: $error');
+      }
+      if (stackTrace != null) {
+        debugPrint('StackTrace: $stackTrace');
       }
     }
-    handler.next(err);
+    // Add to Crashlytics breadcrumbs
+    CrashlyticsHelper.logBreadcrumb(message, level: levelName, data: context);
   }
-
-  Future<bool> _refreshToken() async {
+  // Specialized logging methods
+  static void logNetworkRequest(String method, String url, {
+    Map<String, dynamic>? headers,
+    dynamic body,
+  }) {
+    debug('Network Request: $method $url', tag: 'Network', context: {
+      'method': method,
+      'url': url,
+      if (headers != null) 'headers': headers,
+      if (body != null) 'body': body,
+    });
+  }
+  static void logNetworkResponse(String method, String url, int statusCode, {
+    dynamic data,
+    Duration? duration,
+  }) {
+    final level = statusCode >= 400 ? 2 : 1; // WARNING for errors, INFO for success
+    _log(level, statusCode >= 400 ? 'WARNING' : 'INFO', 
+      'Network Response: $method $url - $statusCode',
+      tag: 'Network',
+      context: {
+        'method': method,
+        'url': url,
+        'statusCode': statusCode,
+        if (duration != null) 'duration': '${duration.inMilliseconds}ms',
+        if (data != null) 'data': data,
+      },
+    );
+  }
+  static void logUserAction(String action, {Map<String, dynamic>? details}) {
+    info('User Action: $action', tag: 'UserAction', context: details);
+  }
+  static void logPerformance(String operation, Duration duration, {
+    Map<String, dynamic>? details,
+  }) {
+    info('Performance: $operation took ${duration.inMilliseconds}ms',
+      tag: 'Performance',
+      context: details,
+    );
+  }
+}
+```
+### Usage Examples
+#### Basic Logging
+```dart
+AppLogger.debug('Loading user profile');
+AppLogger.info('User logged in successfully');
+AppLogger.warning('Cache miss for user data');
+AppLogger.error('Failed to fetch posts', error: e, stackTrace: stackTrace);
+AppLogger.fatal('Critical: Database corruption detected');
+```
+#### With Context
+```dart
+AppLogger.info('Payment processed', context: {
+  'amount': 99.99,
+  'currency': 'USD',
+  'userId': user.id,
+});
+```
+#### Network Logging
+```dart
+AppLogger.logNetworkRequest('POST', '/api/login', body: {
+  'username': 'john',
+});
+AppLogger.logNetworkResponse('POST', '/api/login', 200, 
+  duration: Duration(milliseconds: 234),
+);
+```
+#### User Action Logging
+```dart
+AppLogger.logUserAction('Button Clicked', details: {
+  'button': 'login',
+  'screen': 'LoginScreen',
+});
+```
+#### Performance Logging
+```dart
+final stopwatch = Stopwatch()..start();
+await heavyOperation();
+stopwatch.stop();
+AppLogger.logPerformance('Heavy Operation', stopwatch.elapsed);
+```
+---
+## 3. Firebase Crashlytics Integration
+### Overview
+Automatic crash reporting with custom keys, breadcrumbs, and user identification.
+### Implementation Status: ✅ Complete
+### Features
+- ✅ Automatic crash reporting
+- ✅ Non-fatal exception tracking
+- ✅ Custom keys (environment, user, features)
+- ✅ Breadcrumb trail
+- ✅ User identification
+- ✅ Environment separation (dev/prod)
+- ✅ Test screen for verification
+### File Structure
+```
+lib/core/
+├── services/
+│   └── firebase_service.dart       # Firebase initialization
+└── utils/
+    └── crashlytics_helper.dart     # Crashlytics utilities
+lib/features/debug/
+└── crashlytics_test_screen.dart    # Test screen
+```
+### Firebase Service
+```dart
+class FirebaseService {
+  static final FirebaseService _instance = FirebaseService._internal();
+  static FirebaseService get instance => _instance;
+  FirebaseService._internal();
+  bool _initialized = false;
+  bool get isInitialized => _initialized;
+  Future<void> initialize(AppConfig config) async {
+    if (_initialized) return;
     try {
-      final refreshToken = await secureStorage.getRefreshToken();
-      // Call refresh token API
-      // Save new tokens
-      return true;
-    } catch (e) {
-      return false;
+      await Firebase.initializeApp();
+      // Configure Crashlytics
+      await _configureCrashlytics(config);
+      _initialized = true;
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'Failed to initialize Firebase',
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
-
-  Future<Response> _retry(RequestOptions requestOptions) async {
-    final options = Options(
-      method: requestOptions.method,
-      headers: requestOptions.headers,
+  Future<void> _configureCrashlytics(AppConfig config) async {
+    final crashlytics = FirebaseCrashlytics.instance;
+    // Enable/disable based on environment
+    await crashlytics.setCrashlyticsCollectionEnabled(
+      config.isFeatureEnabled('enable_crashlytics'),
     );
-    return Dio().request(
-      requestOptions.path,
-      data: requestOptions.data,
-      queryParameters: requestOptions.queryParameters,
-      options: options,
+    // Set custom keys
+    await crashlytics.setCustomKey('environment', config.environment.name);
+    await crashlytics.setCustomKey('api_base_url', config.apiBaseUrl);
+    await crashlytics.setCustomKey('app_version', '1.0.0');
+    await crashlytics.setCustomKey('debug_mode', config.debugMode);
+    // Set feature flags
+    for (var entry in config.featureFlags.entries) {
+      await crashlytics.setCustomKey('feature_${entry.key}', entry.value);
+    }
+  }
+  Future<void> setUserIdentifier(String userId, {
+    String? email,
+    String? username,
+  }) async {
+    final crashlytics = FirebaseCrashlytics.instance;
+    await crashlytics.setUserIdentifier(userId);
+    if (email != null) {
+      await crashlytics.setCustomKey('user_email', email);
+    }
+    if (username != null) {
+      await crashlytics.setCustomKey('user_username', username);
+    }
+  }
+}
+```
+### Crashlytics Helper
+```dart
+class CrashlyticsHelper {
+  static Future<void> logError(
+    Object error,
+    StackTrace? stackTrace, {
+    String? reason,
+    bool fatal = false,
+  }) async {
+    try {
+      await FirebaseCrashlytics.instance.recordError(
+        error,
+        stackTrace,
+        reason: reason,
+        fatal: fatal,
+      );
+    } catch (e) {
+      debugPrint('Failed to log error to Crashlytics: $e');
+    }
+  }
+  static Future<void> logBreadcrumb(
+    String message, {
+    String? level,
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      final breadcrumb = StringBuffer(message);
+      if (level != null) {
+        breadcrumb.write(' [$level]');
+      }
+      if (data != null && data.isNotEmpty) {
+        breadcrumb.write(' ${jsonEncode(data)}');
+      }
+      await FirebaseCrashlytics.instance.log(breadcrumb.toString());
+    } catch (e) {
+      debugPrint('Failed to log breadcrumb: $e');
+    }
+  }
+  static Future<void> setCustomKey(String key, dynamic value) async {
+    try {
+      await FirebaseCrashlytics.instance.setCustomKey(key, value);
+    } catch (e) {
+      debugPrint('Failed to set custom key: $e');
+    }
+  }
+  static Future<void> testCrash() async {
+    await FirebaseCrashlytics.instance.crash();
+  }
+  static Future<void> testException() async {
+    try {
+      throw Exception('Test exception from Flutter');
+    } catch (e, stackTrace) {
+      await logError(e, stackTrace, reason: 'Test Exception');
+    }
+  }
+}
+```
+### Test Screen
+```dart
+class CrashlyticsTestScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Crashlytics Test')),
+      body: ListView(
+        padding: EdgeInsets.all(16),
+        children: [
+          ElevatedButton(
+            onPressed: () {
+              AppLogger.logUserAction('Test Crash Button Clicked');
+              CrashlyticsHelper.testCrash();
+            },
+            child: Text('Test Fatal Crash'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              AppLogger.logUserAction('Test Exception Button Clicked');
+              CrashlyticsHelper.testException();
+            },
+            child: Text('Test Non-Fatal Exception'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              AppLogger.error('Test Error Log', 
+                error: Exception('Test error'),
+              );
+            },
+            child: Text('Test Error Log'),
+          ),
+        ],
+      ),
     );
   }
 }
 ```
-
-**2. Logging Interceptor:**
+### Usage in Code
+#### Automatic Error Catching
 ```dart
-class LoggingInterceptor extends Interceptor {
-  @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    Logger.d('REQUEST[${options.method}] => PATH: ${options.path}');
-    Logger.d('Headers: ${options.headers}');
-    Logger.d('Data: ${options.data}');
-    handler.next(options);
-  }
-
-  @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
-    Logger.d('RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}');
-    Logger.d('Data: ${response.data}');
-    handler.next(response);
-  }
-
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    Logger.e('ERROR[${err.response?.statusCode}] => PATH: ${err.requestOptions.path}');
-    Logger.e('Error: ${err.message}');
-    handler.next(err);
-  }
-}
-```
-
-### API Endpoints
-
-```dart
-class ApiEndpoints {
-  static const String baseUrl = 'https://dummyjson.com';
-
-  // Auth
-  static const String login = '/auth/login';
-  static const String currentUser = '/auth/me';
-  static const String refreshToken = '/auth/refresh';
-
-  // Posts
-  static const String posts = '/posts';
-  static String postDetail(int id) => '/posts/$id';
-  static String postsByUser(int userId) => '/posts/user/$userId';
-
-  // Comments
-  static String commentsByPost(int postId) => '/posts/$postId/comments';
-}
-```
-
----
-
-## 🔄 Data Flow in Clean Architecture
-
-### Complete Data Flow Diagram
-
-```
-┌───────────────────────────────────────────────────────────────┐
-│                         USER INTERFACE                         │
-│                     (Presentation Layer)                       │
-└────────────────────────┬──────────────────────────────────────┘
-                         │
-                         ↓ User Action (e.g., Login Button)
-                         │
-┌────────────────────────▼──────────────────────────────────────┐
-│                      BLoC (Bloc/Cubit)                         │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │ 1. Receive Event (AuthLoginRequested)                    │ │
-│  │ 2. Emit Loading State                                    │ │
-│  │ 3. Call Use Case                                         │ │
-│  └──────────────────────────────────────────────────────────┘ │
-└────────────────────────┬──────────────────────────────────────┘
-                         │
-                         ↓
-┌────────────────────────▼──────────────────────────────────────┐
-│                      USE CASE                                  │
-│                   (Domain Layer)                               │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │ 1. Validate business rules                               │ │
-│  │ 2. Call Repository Interface                             │ │
-│  │ 3. Return Either<Failure, Success>                       │ │
-│  └──────────────────────────────────────────────────────────┘ │
-└────────────────────────┬──────────────────────────────────────┘
-                         │
-                         ↓
-┌────────────────────────▼──────────────────────────────────────┐
-│                  REPOSITORY IMPL                               │
-│                    (Data Layer)                                │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │ 1. Check network connectivity                            │ │
-│  │ 2. Try remote data source (API)                          │ │
-│  │ 3. Cache response locally                                │ │
-│  │ 4. On error, fallback to local cache                     │ │
-│  │ 5. Map DTO to Entity                                     │ │
-│  │ 6. Return Either<Failure, Entity>                        │ │
-│  └──────────────────────────────────────────────────────────┘ │
-└──────────┬────────────────────────────────────┬───────────────┘
-           │                                    │
-           ↓                                    ↓
-┌──────────▼────────────┐          ┌───────────▼──────────────┐
-│  REMOTE DATA SOURCE   │          │  LOCAL DATA SOURCE       │
-│    (API Client)       │          │      (Cache)             │
-│  ┌─────────────────┐  │          │  ┌────────────────────┐ │
-│  │ Dio HTTP Call   │  │          │  │ Hive Operations    │ │
-│  │ JSON Parsing    │  │          │  │ Get/Set/Delete     │ │
-│  │ Error Handling  │  │          │  │ Return DTO         │ │
-│  └─────────────────┘  │          │  └────────────────────┘ │
-└───────────────────────┘          └────────────────────────┘
-```
-
-### Step-by-Step Flow Example: Login
-
-```
-1. USER ACTION
-   ↓
-   User taps "Login" button
-
-2. PRESENTATION LAYER
-   ↓
-   LoginScreen captures username/password
-   ↓
-   Adds event to BLoC:
-   context.read<AuthBloc>().add(
-     AuthLoginRequested(username: 'emilys', password: 'emilyspass')
-   );
-
-3. BLoC PROCESSING
-   ↓
-   AuthBloc receives AuthLoginRequested event
-   ↓
-   Emits AuthLoading state (UI shows loading)
-   ↓
-   Calls LoginUseCase with LoginParams
-
-4. DOMAIN LAYER (Use Case)
-   ↓
-   LoginUseCase receives parameters
-   ↓
-   Calls authRepository.login(username, password)
-   ↓
-   Returns Either<Failure, AuthResponse>
-
-5. DATA LAYER (Repository)
-   ↓
-   AuthRepositoryImpl.login() is called
-   ↓
-   Checks network connectivity
-   ↓
-   If online:
-     ├─> Calls AuthRemoteDataSource.login()
-     ├─> Gets AuthResponseDto from API
-     ├─> Saves tokens to SecureStorage
-     ├─> Caches user to LocalStorage
-     ├─> Converts DTO to Entity
-     └─> Returns Right(AuthResponse)
-   ↓
-   If offline:
-     └─> Returns Left(NetworkFailure)
-
-6. REMOTE DATA SOURCE
-   ↓
-   Makes POST request to /auth/login
-   ↓
-   Dio sends request with interceptors:
-     - Adds headers
-     - Logs request
-   ↓
-   Receives JSON response
-   ↓
-   Parses to AuthResponseDto
-   ↓
-   Returns DTO
-
-7. BACK TO BLoC
-   ↓
-   BLoC receives Either<Failure, AuthResponse>
-   ↓
-   If Right (success):
-     └─> Emits AuthAuthenticated(user)
-   ↓
-   If Left (failure):
-     └─> Emits AuthError(message)
-
-8. UI UPDATE
-   ↓
-   BlocBuilder rebuilds UI based on state:
-   ↓
-   If AuthAuthenticated:
-     └─> Navigate to Home screen
-   ↓
-   If AuthError:
-     └─> Show error message
-   ↓
-   If AuthLoading:
-     └─> Show loading indicator
-```
-
----
-
-## 🎯 Auth Feature Deep Dive
-
-Complete architecture diagram and implementation for the Authentication feature.
-
-### Auth Feature Architecture Diagram
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            PRESENTATION LAYER                                │
-│  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │                          LOGIN SCREEN (UI)                             │  │
-│  │  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────────────┐ │  │
-│  │  │ TextField   │  │   Button     │  │   BlocConsumer<AuthState>    │ │  │
-│  │  │ (username)  │  │   (Login)    │  │   - Loading → Spinner        │ │  │
-│  │  │ TextField   │  │              │  │   - Error → SnackBar         │ │  │
-│  │  │ (password)  │  │              │  │   - Authenticated → Navigate │ │  │
-│  │  └─────────────┘  └──────────────┘  └──────────────────────────────┘ │  │
-│  └────────────────────────────┬──────────────────────────────────────────┘  │
-│                                │                                             │
-│                                ↓ add(AuthLoginRequested)                     │
-│  ┌────────────────────────────▼──────────────────────────────────────────┐  │
-│  │                           AUTH BLOC                                    │  │
-│  │                                                                        │  │
-│  │  Events:                    States:                                   │  │
-│  │  • AuthLoginRequested       • AuthInitial                             │  │
-│  │  • AuthLogoutRequested      • AuthLoading                             │  │
-│  │  • AuthCheckRequested       • AuthAuthenticated(User)                 │  │
-│  │  • AuthUserUpdated          • AuthUnauthenticated                     │  │
-│  │                             • AuthError(String)                       │  │
-│  │                                                                        │  │
-│  │  Dependencies:                                                         │  │
-│  │  • LoginUseCase                                                        │  │
-│  │  • LogoutUseCase                                                       │  │
-│  │  • GetCurrentUserUseCase                                               │  │
-│  └────────────────────────────┬──────────────────────────────────────────┘  │
-└─────────────────────────────────┼──────────────────────────────────────────┘
-                                  │
-                                  ↓ call use case
-┌─────────────────────────────────▼──────────────────────────────────────────┐
-│                              DOMAIN LAYER                                   │
-│  ┌───────────────────────────────────────────────────────────────────────┐ │
-│  │                          USE CASES                                     │ │
-│  │                                                                        │ │
-│  │  ┌───────────────────┐  ┌──────────────────┐  ┌──────────────────┐  │ │
-│  │  │  LoginUseCase     │  │  LogoutUseCase   │  │GetCurrentUser    │  │ │
-│  │  │                   │  │                  │  │   UseCase        │  │ │
-│  │  │  call(params)     │  │  call()          │  │  call()          │  │ │
-│  │  │  ↓                │  │  ↓               │  │  ↓               │  │ │
-│  │  │  repository       │  │  repository      │  │  repository      │  │ │
-│  │  │   .login()        │  │   .logout()      │  │   .getCurrentUser│  │ │
-│  │  └───────────────────┘  └──────────────────┘  └──────────────────┘  │ │
-│  │                                                                        │ │
-│  │  Returns: Either<Failure, AuthResponse>                               │ │
-│  └────────────────────────────┬──────────────────────────────────────────┘ │
-│                                │                                            │
-│  ┌────────────────────────────▼──────────────────────────────────────────┐ │
-│  │                    REPOSITORY INTERFACE                                │ │
-│  │                                                                        │ │
-│  │  abstract class AuthRepository {                                      │ │
-│  │    Future<Either<Failure, AuthResponse>> login({...});                │ │
-│  │    Future<Either<Failure, void>> logout();                            │ │
-│  │    Future<Either<Failure, User>> getCurrentUser();                    │ │
-│  │    Future<bool> isAuthenticated();                                    │ │
-│  │  }                                                                     │ │
-│  └────────────────────────────┬──────────────────────────────────────────┘ │
-│                                │                                            │
-│  ┌────────────────────────────▼──────────────────────────────────────────┐ │
-│  │                          ENTITIES                                      │ │
-│  │                                                                        │ │
-│  │  ┌─────────────────────┐        ┌──────────────────────────────────┐ │ │
-│  │  │   User              │        │   AuthResponse                   │ │ │
-│  │  │  - id               │        │  - user: User                    │ │ │
-│  │  │  - username         │        │  - accessToken: String           │ │ │
-│  │  │  - email            │        │  - refreshToken: String          │ │ │
-│  │  │  - firstName        │        │                                  │ │ │
-│  │  │  - lastName         │        └──────────────────────────────────┘ │ │
-│  │  │  - image            │                                              │ │
-│  │  └─────────────────────┘                                              │ │
-│  └────────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────┬──────────────────────────────────────────┘
-                                  │
-                                  ↓ implements interface
-┌─────────────────────────────────▼──────────────────────────────────────────┐
-│                               DATA LAYER                                    │
-│  ┌───────────────────────────────────────────────────────────────────────┐ │
-│  │                   AUTH REPOSITORY IMPLEMENTATION                       │ │
-│  │                                                                        │ │
-│  │  login(username, password) {                                          │ │
-│  │    1. Check network → networkInfo.isConnected                         │ │
-│  │    2. Call remoteDataSource.login()                                   │ │
-│  │    3. Save tokens → secureStorage.saveTokens()                        │ │
-│  │    4. Get user → remoteDataSource.getCurrentUser()                    │ │
-│  │    5. Cache user → localDataSource.cacheUser()                        │ │
-│  │    6. Map DTO → Entity                                                │ │
-│  │    7. Return Either<Failure, AuthResponse>                            │ │
-│  │  }                                                                     │ │
-│  │                                                                        │ │
-│  │  Dependencies:                                                         │ │
-│  │  • AuthRemoteDataSource                                                │ │
-│  │  • AuthLocalDataSource                                                 │ │
-│  │  • SecureStorageService                                                │ │
-│  │  • NetworkInfo                                                         │ │
-│  └────────────┬───────────────────────────────────┬─────────────────────┘ │
-│               │                                   │                        │
-│               ↓                                   ↓                        │
-│  ┌────────────▼──────────────────┐  ┌────────────▼───────────────────┐   │
-│  │  AUTH REMOTE DATA SOURCE      │  │  AUTH LOCAL DATA SOURCE        │   │
-│  │                               │  │                                │   │
-│  │  login(username, password) {  │  │  cacheUser(UserDto) {          │   │
-│  │    dio.post(                  │  │    localStorageService         │   │
-│  │      '/auth/login',           │  │      .usersBox                 │   │
-│  │      data: {...}              │  │      .put('user', dto)         │   │
-│  │    )                          │  │  }                             │   │
-│  │    return AuthResponseDto     │  │                                │   │
-│  │  }                            │  │  getCachedUser() {             │   │
-│  │                               │  │    return localStorageService  │   │
-│  │  getCurrentUser() {           │  │      .usersBox.get('user')     │   │
-│  │    dio.get('/auth/me')        │  │  }                             │   │
-│  │    return UserDto             │  │                                │   │
-│  │  }                            │  │  clearCache() {                │   │
-│  │                               │  │    localStorageService         │   │
-│  │  Uses: ApiClient (Dio)        │  │      .usersBox.clear()         │   │
-│  └───────────────────────────────┘  └────────────────────────────────┘   │
-│                                                                            │
-│  ┌───────────────────────────────────────────────────────────────────────┐ │
-│  │                            MODELS (DTOs)                               │ │
-│  │                                                                        │ │
-│  │  ┌─────────────────────────────┐    ┌──────────────────────────────┐ │ │
-│  │  │  UserDto                     │    │  AuthResponseDto             │ │ │
-│  │  │  @JsonSerializable()         │    │  @JsonSerializable()         │ │ │
-│  │  │                              │    │                              │ │ │
-│  │  │  • fromJson()                │    │  • fromJson()                │ │ │
-│  │  │  • toJson()                  │    │  • toJson()                  │ │ │
-│  │  │  • toEntity() → User         │    │  • toEntity() → AuthResponse │ │ │
-│  │  │  • fromEntity()              │    │                              │ │ │
-│  │  └─────────────────────────────┘    └──────────────────────────────┘ │ │
-│  └───────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────┬──────────────────────────────────────────┘
-                                  │
-                                  ↓
-┌─────────────────────────────────▼──────────────────────────────────────────┐
-│                          STORAGE & NETWORK                                  │
-│  ┌───────────────────────────────────────────────────────────────────────┐ │
-│  │                                                                        │ │
-│  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐   │ │
-│  │  │ SecureStorage    │  │ LocalStorage     │  │  NetworkInfo     │   │ │
-│  │  │ (Tokens)         │  │ (Hive Cache)     │  │  (Connectivity)  │   │ │
-│  │  │                  │  │                  │  │                  │   │ │
-│  │  │ • saveTokens()   │  │ • usersBox       │  │ • isConnected    │   │ │
-│  │  │ • getToken()     │  │ • postsBox       │  │ • onStatusChange │   │ │
-│  │  │ • clearTokens()  │  │ • cacheData()    │  │                  │   │ │
-│  │  └──────────────────┘  └──────────────────┘  └──────────────────┘   │ │
-│  │                                                                        │ │
-│  │  ┌──────────────────────────────────────────────────────────────────┐ │ │
-│  │  │                       API CLIENT (Dio)                            │ │ │
-│  │  │                                                                   │ │ │
-│  │  │  Interceptors:                                                    │ │ │
-│  │  │  1. AuthInterceptor → Add Bearer token                           │ │ │
-│  │  │  2. LoggingInterceptor → Log requests/responses                  │ │ │
-│  │  │  3. CacheInterceptor → Handle offline caching                    │ │ │
-│  │  │                                                                   │ │ │
-│  │  │  Base URL: https://dummyjson.com                                 │ │ │
-│  │  │  Timeout: 30 seconds                                             │ │ │
-│  │  └──────────────────────────────────────────────────────────────────┘ │ │
-│  └───────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Auth Flow Sequence
-
-```
-┌──────┐         ┌──────┐        ┌──────────┐       ┌────────────┐      ┌─────────┐
-│ User │         │  UI  │        │   BLoC   │       │  Use Case  │      │   Repo  │
-└───┬──┘         └───┬──┘        └────┬─────┘       └─────┬──────┘      └────┬────┘
-    │                │                │                   │                   │
-    │  Enter creds   │                │                   │                   │
-    ├───────────────>│                │                   │                   │
-    │                │                │                   │                   │
-    │  Tap Login     │                │                   │                   │
-    ├───────────────>│                │                   │                   │
-    │                │  Add Event     │                   │                   │
-    │                ├───────────────>│                   │                   │
-    │                │                │  Call UseCase     │                   │
-    │                │                ├──────────────────>│                   │
-    │                │                │                   │  Call login()     │
-    │                │                │                   ├──────────────────>│
-    │                │                │                   │                   │
-    │                │                │                   │    Check Network  │
-    │                │                │                   │<──────────────────┤
-    │                │                │                   │                   │
-    │                │                │                   │    API Call       │
-    │                │                │                   │<──────────────────┤
-    │                │                │                   │                   │
-    │                │                │                   │  Save Tokens      │
-    │                │                │                   │<──────────────────┤
-    │                │                │                   │                   │
-    │                │                │                   │  Cache User       │
-    │                │                │                   │<──────────────────┤
-    │                │                │                   │                   │
-    │                │                │  Return Success   │                   │
-    │                │                │<──────────────────┤                   │
-    │                │                │                   │                   │
-    │                │  Emit State    │                   │                   │
-    │                │<───────────────┤                   │                   │
-    │                │                │                   │                   │
-    │  Navigate Home │                │                   │                   │
-    │<───────────────┤                │                   │                   │
-    │                │                │                   │                   │
-```
-
----
-
-## ⚠️ Error Handling
-
-### Exception Hierarchy
-
-```dart
-// exceptions.dart
-class ServerException implements Exception {
-  final String message;
-  ServerException(this.message);
-}
-
-class CacheException implements Exception {
-  final String message;
-  CacheException(this.message);
-}
-
-class NetworkException implements Exception {
-  final String message;
-  NetworkException(this.message);
-}
-```
-
-### Failure Classes
-
-```dart
-// failures.dart
-abstract class Failure extends Equatable {
-  final String message;
-  const Failure(this.message);
-  
-  @override
-  List<Object> get props => [message];
-}
-
-class ServerFailure extends Failure {
-  const ServerFailure(super.message);
-}
-
-class CacheFailure extends Failure {
-  const CacheFailure(super.message);
-}
-
-class NetworkFailure extends Failure {
-  const NetworkFailure(super.message);
-}
-
-class AuthenticationFailure extends Failure {
-  const AuthenticationFailure(super.message);
-}
-
-class ValidationFailure extends Failure {
-  const ValidationFailure(super.message);
-}
-```
-
-### Error Handling in Repository
-
-```dart
-@override
-Future<Either<Failure, AuthResponse>> login({
-  required String username,
-  required String password,
-}) async {
-  // Check network
-  if (!await networkInfo.isConnected) {
-    return const Left(NetworkFailure('No internet connection'));
-  }
-
-  try {
-    // Try API call
-    final authResponse = await remoteDataSource.login(
-      username: username,
-      password: password,
+// In main_prod.dart
+runZonedGuarded(
+  () {
+    FlutterError.onError = (details) {
+      AppLogger.fatal(
+        'Flutter Error',
+        error: details.exception,
+        stackTrace: details.stack,
+      );
+    };
+    runApp(MyApp(config: config));
+  },
+  (error, stackTrace) {
+    AppLogger.fatal(
+      'Uncaught Error',
+      error: error,
+      stackTrace: stackTrace,
     );
-
-    // Save tokens
-    await secureStorage.saveTokens(
-      accessToken: authResponse.accessToken,
-      refreshToken: authResponse.refreshToken,
-    );
-
-    // Cache user
-    final userDto = await remoteDataSource.getCurrentUser();
-    await localDataSource.cacheUser(userDto);
-
-    // Return success
-    return Right(authResponse.toEntity());
-    
-  } on ServerException catch (e) {
-    return Left(ServerFailure(e.message));
-    
-  } on SocketException {
-    return const Left(NetworkFailure('No internet connection'));
-    
-  } catch (e) {
-    return Left(ServerFailure('Unexpected error: ${e.toString()}'));
-  }
+  },
+);
+```
+#### Manual Error Logging
+```dart
+try {
+  await riskyOperation();
+} catch (e, stackTrace) {
+  AppLogger.error(
+    'Failed to perform operation',
+    error: e,
+    stackTrace: stackTrace,
+  );
 }
 ```
-
+#### Set User Info
+```dart
+// After login
+await FirebaseService.instance.setUserIdentifier(
+  user.id.toString(),
+  email: user.email,
+  username: user.username,
+);
+```
 ---
-
-## 🎨 Best Practices
-
-### 1. **Separation of Concerns**
-- Each layer has a single responsibility
-- Domain layer is framework-independent
-- Data layer handles all external dependencies
-
-### 2. **Dependency Inversion**
-- High-level modules don't depend on low-level modules
-- Both depend on abstractions (interfaces)
-- Use dependency injection
-
-### 3. **Immutability**
-- Use `const` constructors
-- Use `@immutable` annotation
-- Use Equatable for value comparison
-
-### 4. **Error Handling**
-- Use `Either<Failure, Success>` pattern
-- Convert exceptions to failures at data layer
-- Handle errors gracefully in UI
-
-### 5. **Testing**
-- Write tests for each layer
-- Mock dependencies
-- Test business logic independently
-
-### 6. **Code Organization**
-- Group by feature, not by type
-- Keep related files together
-- Use clear naming conventions
-
-### 7. **State Management**
-- Use BLoC for complex features
-- Keep BLoCs focused and single-purpose
-- Emit immutable states
-
-### 8. **API Integration**
-- Use interceptors for common operations
-- Handle token refresh automatically
-- Implement retry logic
-
-### 9. **Offline Support**
-- Cache data locally
-- Check network before API calls
-- Fallback to cache when offline
-
-### 10. **Security**
-- Store tokens securely
-- Never log sensitive data
-- Validate user input
-
+## 4. Fastlane Setup
+### Implementation Status: ⏸️ Planned
+This section is planned for future implementation. Fastlane will automate:
+- Screenshots generation
+- Beta distribution
+- App Store/Play Store deployment
+- Certificate management
 ---
-
-## 📊 Summary
-
-This implementation guide covers:
-- ✅ Clean Architecture principles
-- ✅ BLoC pattern for state management
-- ✅ Dependency injection with GetIt
-- ✅ Three-layer storage strategy
-- ✅ API integration with Dio
-- ✅ Complete data flow
-- ✅ Auth feature deep dive with diagrams
-- ✅ Error handling patterns
-- ✅ Best practices
-
-For testing implementation, see **[TEST_IMPLEMENTATION.md](TEST_IMPLEMENTATION.md)**
-
+## 5. GitHub Actions CI/CD
+### Implementation Status: ⏸️ Planned
+This section is planned for future implementation. CI/CD will include:
+- Automated testing on PR
+- Build verification
+- Release automation
+- Deployment to stores
 ---
-
-**Last Updated:** January 27, 2026  
-**Version:** 1.0.0
-
+## 6. Project Structure
+### Clean Architecture
+The project follows clean architecture with three layers:
+```
+lib/
+├── main.dart, main_dev.dart, main_prod.dart
+├── app.dart
+├── config/                    # Environment configuration
+├── core/                      # Core functionality
+│   ├── api/                  # API client & interceptors
+│   ├── constants/            # Constants
+│   ├── di/                   # Dependency injection
+│   ├── errors/               # Error handling
+│   ├── network/              # Network utilities
+│   ├── router/               # Routing
+│   ├── services/             # Firebase, etc.
+│   ├── storage/              # Local storage
+│   └── utils/                # Utilities (logger, etc.)
+└── features/                  # Feature modules
+    ├── splash/
+    ├── onboarding/
+    ├── auth/
+    │   ├── data/             # Data layer
+    │   │   ├── datasources/  # Remote/Local data sources
+    │   │   ├── models/       # DTOs
+    │   │   └── repositories/ # Repository implementations
+    │   ├── domain/           # Domain layer
+    │   │   ├── entities/     # Business models
+    │   │   ├── repositories/ # Repository interfaces
+    │   │   └── usecases/     # Business logic
+    │   └── presentation/     # Presentation layer
+    │       ├── bloc/         # BLoC
+    │       ├── pages/        # Screens
+    │       └── widgets/      # UI components
+    ├── posts/
+    └── debug/
+```
+### Layer Responsibilities
+**Presentation**: UI & user interactions
+**Domain**: Business logic (framework-independent)
+**Data**: Data operations (API, DB, cache)
+---
+## 7. Secrets Management
+### Environment Variables
+#### Development (.env.dev)
+```dotenv
+ENV=dev
+API_BASE_URL=https://dummyjson.com
+FIREBASE_API_KEY=your_dev_key
+FIREBASE_APP_ID=your_dev_app_id
+FIREBASE_MESSAGING_SENDER_ID=your_dev_sender
+FIREBASE_PROJECT_ID=your-dev-project
+ENCRYPTION_KEY=dev_32_char_encryption_key_12
+APP_NAME=Social App Dev
+APPLICATION_ID=com.example.flutter_bloc.dev
+```
+#### Production (.env.prod)
+Create for production with real credentials.
+### Security Best Practices
+1. **Never commit** `.env.dev` or `.env.prod`
+2. Add to `.gitignore`
+3. Use different Firebase projects for dev/prod
+4. Use strong encryption keys (32+ characters)
+5. Rotate keys regularly
+6. Use CI/CD secrets for automation
+### .gitignore
+```
+# Environment files
+.env.dev
+.env.prod
+.env.local
+.env.*.local
+# Firebase
+google-services.json
+GoogleService-Info.plist
+# Signing keys
+*.jks
+*.keystore
+key.properties
+```
+---
+## 8. Testing Strategy
+### Test Structure
+```
+test/
+├── features/
+│   └── auth/
+│       ├── data/
+│       │   ├── datasources/
+│       │   ├── models/
+│       │   └── repositories/
+│       ├── domain/
+│       │   ├── entities/
+│       │   └── usecases/
+│       └── presentation/
+│           └── bloc/
+└── widget_test.dart
+```
+### Testing Pyramid
+```
+        E2E (Few)
+      Widget Tests (Some)
+    Unit Tests (Many)
+```
+### Running Tests
+```bash
+# All tests
+flutter test
+# With coverage
+flutter test --coverage
+# Specific test
+flutter test test/features/auth/domain/usecases/login_usecase_test.dart
+```
+See [TEST_IMPLEMENTATION.md](TEST_IMPLEMENTATION.md) for complete testing guide.
+---
+## Summary
+### ✅ Implemented
+1. **Environment Configuration**
+   - Dual environment setup (dev/prod)
+   - .env file support
+   - Feature flags
+   - Type-safe configuration
+2. **Logging System**
+   - Multi-level logging
+   - Environment-aware filtering
+   - Crashlytics integration
+   - Network/user/performance logging
+3. **Firebase Crashlytics**
+   - Automatic crash reporting
+   - Custom keys & breadcrumbs
+   - User identification
+   - Test screen
+4. **Clean Architecture**
+   - Three-layer architecture
+   - BLoC state management
+   - Dependency injection
+   - Repository pattern
+5. **Build System**
+   - Makefile commands
+   - Shell scripts
+   - Android flavors
+   - iOS schemes
+### 🚧 Planned
+6. **Fastlane Setup**
+   - Automated deployment
+   - Screenshot generation
+   - Beta distribution
+7. **GitHub Actions CI/CD**
+   - Automated testing
+   - Build verification
+   - Release automation
+---
+## Next Steps
+1. Set up production environment (`.env.prod`)
+2. Configure production Firebase project
+3. Add signing configuration for release builds
+4. Implement Fastlane setup
+5. Add GitHub Actions workflows
+6. Set up app distribution (TestFlight, Play Console)
+---
+**For detailed testing documentation, see [TEST_IMPLEMENTATION.md](TEST_IMPLEMENTATION.md)**

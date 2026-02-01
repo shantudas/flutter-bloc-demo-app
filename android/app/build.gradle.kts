@@ -22,7 +22,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Base application ID - will be suffixed by flavor
         applicationId = "com.example.flutter_bloc"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -32,6 +32,7 @@ android {
         versionName = flutter.versionName
     }
 
+    // Set flavor dimensions BEFORE productFlavors
     flavorDimensions += "environment"
 
     productFlavors {
@@ -40,6 +41,7 @@ android {
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
             resValue("string", "app_name", "Social App Dev")
+            // Make dev the default flavor
             isDefault = true
         }
 
@@ -50,6 +52,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Default debug build - no special signing needed
+        }
+
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
@@ -61,3 +67,41 @@ android {
 flutter {
     source = "../.."
 }
+
+// Task to help Flutter find flavor-specific APKs
+// This copies the APK to the location Flutter expects and creates a symlink
+tasks.register("copyFlutterApk") {
+    doLast {
+        val sourceDir = file("${layout.buildDirectory.get()}/outputs/flutter-apk")
+        val targetDir = file("../../build/app/outputs/flutter-apk")
+
+        if (sourceDir.exists()) {
+            targetDir.mkdirs()
+            sourceDir.listFiles()?.forEach { file ->
+                if (file.extension == "apk") {
+                    val targetFile = File(targetDir, file.name)
+                    file.copyTo(targetFile, overwrite = true)
+                    println("✓ Copied ${file.name} to ${targetFile.absolutePath}")
+
+                    // Also create a symlink without the flavor name for Flutter tooling
+                    // app-dev-debug.apk -> app-debug.apk
+                    val standardName = file.name.replace(Regex("-[a-z]+-(debug|release)"), "-$1")
+                    if (standardName != file.name) {
+                        val linkFile = File(targetDir, standardName)
+                        if (linkFile.exists()) linkFile.delete()
+                        file.copyTo(linkFile, overwrite = true)
+                        println("✓ Created ${standardName} for Flutter tooling")
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Run copyFlutterApk after APK assembly
+tasks.whenTaskAdded {
+    if (name.matches(Regex("assemble.*"))) {
+        finalizedBy("copyFlutterApk")
+    }
+}
+

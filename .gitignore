@@ -1,45 +1,196 @@
-# Miscellaneous
+####################################
+# General / OS / Editor
+####################################
 *.class
 *.log
 *.pyc
 *.swp
+*.lock
 .DS_Store
 .atom/
-.build/
-.buildlog/
-.history
+.history/
 .svn/
 .swiftpm/
-migrate_working_dir/
+.migrate_working_dir/
 
-# IntelliJ related
+####################################
+# IDEs
+####################################
+.idea/
 *.iml
 *.ipr
 *.iws
-.idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
+# VS Code (uncomment if needed)
 #.vscode/
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+####################################
+# Dart / Flutter
+####################################
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
-.pub-cache/
 .pub/
-/build/
+.pub-cache/
+.packages
+build/
+generated_plugin_registrant.dart
 
-# Symbolication related
-app.*.symbols
+####################################
+# Generated Dart Files
+####################################
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+*.config.dart
 
-# Obfuscation related
-app.*.map.json
+####################################
+# Web
+####################################
+lib/generated_plugin_registrant.dart
 
-# Android Studio will place build artifacts here
+####################################
+# Android
+####################################
+**/android/.gradle/
+**/android/**/build/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/key.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/**/gradle-wrapper.jar
+*.jks
+*.keystore
+*.apk
+*.aab
+*.so
+
+####################################
+# Android Outputs
+####################################
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/app/outputs/
+/android/build/
+
+####################################
+# iOS / Xcode
+####################################
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/**/DerivedData/
+**/ios/**/xcuserdata
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.pbxuser
+**/ios/**/*.perspectivev3
+**/ios/**/*.moved-aside
+**/ios/**/*sync/
+**/ios/**/.tags*
+**/ios/**/.vagrant/
+**/ios/**/.generated/
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+####################################
+# macOS
+####################################
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/Flutter/ephemeral
+**/macos/Flutter/Flutter-Debug.xcconfig
+**/macos/Flutter/Flutter-Release.xcconfig
+**/macos/Flutter/Flutter-Profile.xcconfig
+
+####################################
+# Windows
+####################################
+**/windows/flutter/generated_plugin_registrant.cc
+**/windows/flutter/generated_plugin_registrant.h
+**/windows/flutter/generated_plugins.cmake
+
+####################################
+# Linux
+####################################
+**/linux/flutter/generated_plugin_registrant.cc
+**/linux/flutter/generated_plugin_registrant.h
+**/linux/flutter/generated_plugins.cmake
+
+####################################
+# Firebase / Secrets
+####################################
+*.env
+.env
+.env.*
+!.env.example
+/ios/Runner/GoogleService-Info.plist
+/android/app/google-services.json
+firebase_options.dart
+**/secrets.dart
+**/api_keys.dart
+
+####################################
+# Crash / Coverage
+####################################
+coverage/
+*.lcov
+/build/symbols/
+app.*.symbols
+app.*.map.json
+
+####################################
+# FVM
+####################################
+.fvm/
+.fvm/flutter_sdk
+
+####################################
+# Mason
+####################################
+.mason/
+
+####################################
+# Fastlane
+####################################
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots
+**/fastlane/test_output
+**/fastlane/readme.md
+
+####################################
+# Localization (keep English only)
+####################################
+**/lib/l10n/*.arb
+!**/lib/l10n/app_en.arb
+
+####################################
+# Database
+####################################
+*.db
+*.sqlite
+*.sqlite3
+
+####################################
+# Test Coverage Files
+####################################
+test/.test_coverage.dart
+
+####################################
+# Exceptions (Xcode defaults)
+####################################
+!**/ios/**/default.mode1v3
+!**/ios/**/default.mode2v3
+!**/ios/**/default.pbxuser
+!**/ios/**/default.perspectivev3

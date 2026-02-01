@@ -1,0 +1,7 @@
+#include "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
+#include "Generated.xcconfig"
+
+// Development Environment Configuration
+PRODUCT_BUNDLE_IDENTIFIER = com.example.flutter_bloc.dev
+APP_DISPLAY_NAME = Social App Dev
+

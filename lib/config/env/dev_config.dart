@@ -1,4 +1,5 @@
 import '../app_config.dart';
+import '../env_loader.dart';
 import '../environment.dart';
 
 /// Development environment configuration
@@ -9,56 +10,77 @@ import '../environment.dart';
 /// - All features enabled for testing
 /// - Debug mode enabled
 /// - Verbose logging (DEBUG level)
+///
+/// Values are loaded from:
+/// 1. --dart-define flags (when using make dev-run)
+/// 2. .env.dev file (when running from IDE)
+///
+/// Run with:
+/// - make dev-run (uses --dart-define from .env.dev)
+/// - Android Studio: Run lib/main_dev.dart directly
 class DevConfig {
-  static AppConfig get config => const AppConfig(
-        environment: Environment.development,
+  static Future<AppConfig> loadConfig() async {
+    // Load environment variables from .env.dev file
+    // This allows running from IDE without --dart-define flags
+    final env = await EnvLoader.load('.env.dev');
 
-        // Development API endpoint
-        apiBaseUrl: 'https://dummyjson.com',
+    return AppConfig(
+      environment: Environment.development,
 
-        // Firebase Development Project Configuration
-        firebaseApiKey: 'BO46YTub21vXot8ycIVzWmIU2bln2ABIIrlOqeMrZTCPHuNtDGkbRShEM1ZEFQuvt67Z7Mn0DUhRsMbQ9Ol1sfA', // Get from Firebase Console → Project Settings → Cloud Messaging → Web configuration
-        firebaseAppId: '1:1067516417535:android:1db2e3791146e20fac43ca',
-        firebaseMessagingSenderId: '1067516417535', // Get from Firebase Console → Project Settings → Cloud Messaging → Sender ID
-        firebaseProjectId: 'flutter-bloc-demo-app-2026',
+      // Development API endpoint
+      // Priority: --dart-define > .env.dev file
+      apiBaseUrl: EnvLoader.getVar('API_BASE_URL', env),
 
-        // Feature Flags - All enabled for testing in development
-        featureFlags: {
-          'enable_dark_mode': true,
-          'enable_notifications': true,
-          'enable_analytics': true,
-          'enable_crashlytics': true,
-          'enable_social_login': true,
-          'enable_payments': false, // Usually keep payments disabled in dev
-          'enable_chat': true,
-          'enable_video_calls': true,
-          'enable_beta_features': true,
-        },
+      // Firebase Development Project Configuration
+      // All values loaded from .env.dev (IDE) or --dart-define (make dev-run)
+      firebaseApiKey: EnvLoader.getVar('FIREBASE_API_KEY', env),
+      firebaseAppId: EnvLoader.getVar('FIREBASE_APP_ID', env),
+      firebaseMessagingSenderId: EnvLoader.getVar('FIREBASE_MESSAGING_SENDER_ID', env),
+      firebaseProjectId: EnvLoader.getVar('FIREBASE_PROJECT_ID', env),
 
-        // Debug settings
-        debugMode: true,
+      // Feature Flags - All enabled for testing in development
+      featureFlags: const {
+        'enable_dark_mode': true,
+        'enable_notifications': true,
+        'enable_analytics': true,
+        'enable_crashlytics': true,
+        'enable_social_login': true,
+        'enable_payments': false, // Usually keep payments disabled in dev
+        'enable_chat': true,
+        'enable_video_calls': true,
+        'enable_beta_features': true,
+      },
 
-        // Log level: 0 = DEBUG (verbose logging for development)
-        logLevel: 0,
+      // Debug settings
+      debugMode: true,
 
-        // Encryption key for secure storage (dev key)
-        // TODO: Replace with your actual dev encryption key
-        appEncryptionKey: 'dev_encryption_key_32_characters',
+      // Log level: 0 = DEBUG (verbose logging for development)
+      logLevel: 0,
 
-        // App name with dev indicator
-        appName: 'Social App Dev',
+      // Encryption key for secure storage
+      appEncryptionKey: EnvLoader.getVar('ENCRYPTION_KEY', env),
 
-        // Application ID with dev suffix
-        applicationId: 'com.yourapp.social.dev',
+      // App name with dev indicator - must be in .env.dev
+      appName: EnvLoader.getVar('APP_NAME', env),
 
-        // Optional: Google Maps API Key (development key with limited quota)
-        googleMapsApiKey: null, // Add if needed: 'YOUR_DEV_GOOGLE_MAPS_KEY',
+      // Application ID with dev suffix - must be in .env.dev
+      applicationId: EnvLoader.getVar('APPLICATION_ID', env),
 
-        // Optional: Stripe publishable key (test mode)
-        stripePublishableKey: null, // Add if needed: 'pk_test_YOUR_DEV_STRIPE_KEY',
+      // Optional: Google Maps API Key (development key with limited quota)
+      googleMapsApiKey: EnvLoader.getVar('GOOGLE_MAPS_API_KEY', env).isEmpty
+          ? null
+          : EnvLoader.getVar('GOOGLE_MAPS_API_KEY', env),
 
-        // Optional: Sentry DSN for additional error tracking
-        sentryDsn: null, // Add if needed: 'https://YOUR_DEV_SENTRY_DSN',
-      );
+      // Optional: Stripe publishable key (test mode)
+      stripePublishableKey: EnvLoader.getVar('STRIPE_PUBLISHABLE_KEY', env).isEmpty
+          ? null
+          : EnvLoader.getVar('STRIPE_PUBLISHABLE_KEY', env),
+
+      // Optional: Sentry DSN for additional error tracking
+      sentryDsn: EnvLoader.getVar('SENTRY_DSN', env).isEmpty
+          ? null
+          : EnvLoader.getVar('SENTRY_DSN', env),
+    );
+  }
 }
 

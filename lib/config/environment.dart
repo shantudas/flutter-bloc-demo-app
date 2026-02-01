@@ -5,6 +5,7 @@ enum Environment {
 
   /// Production environment - for live users
   production,
+
 }
 
 /// Global variable to hold the current environment
